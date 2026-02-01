@@ -31,31 +31,65 @@ class Subcategory(models.Model):
         return self.name
 
 
-class FilterType(models.Model):
-    filter_type = models.CharField(max_length=50, verbose_name='Тип фильтра')
+class Size(models.Model):
+    name = models.CharField(max_length=100, verbose_name='Размер')
     is_active = models.BooleanField(default=True, verbose_name='Активен')
 
     class Meta:
-        verbose_name = 'Тип фильтра'
-        verbose_name_plural = 'Типы фильтров'
-        ordering = ['filter_type']
+        verbose_name = 'Размер'
+        verbose_name_plural = 'Размеры'
+        ordering = ['name']
 
     def __str__(self):
-        return self.filter_type
+        return self.name
 
 
-class FilterParameter(models.Model):
-    filter_type = models.ForeignKey(FilterType, on_delete=models.CASCADE, related_name='filter_parameters', verbose_name='Тип фильтра')
-    parameter = models.CharField(max_length=100, verbose_name='Параметр')
+class Fabric(models.Model):
+    name = models.CharField(max_length=100, verbose_name='Ткань')
     is_active = models.BooleanField(default=True, verbose_name='Активен')
 
     class Meta:
-        verbose_name = 'Параметр фильтра'
-        verbose_name_plural = 'Параметры фильтров'
-        ordering = ['filter_type', 'parameter']
+        verbose_name = 'Ткань'
+        verbose_name_plural = 'Ткани'
+        ordering = ['name']
 
     def __str__(self):
-        return f"{self.filter_type.filter_type}: {self.parameter}"
+        return self.name
+
+
+class Product(models.Model):
+    category = models.ForeignKey(Category, on_delete=models.CASCADE, verbose_name='Категория')
+    subcategory = models.ForeignKey(Subcategory, on_delete=models.CASCADE, verbose_name='Подкатегория')
+    name = models.CharField(max_length=200, verbose_name='Название')
+    description = models.TextField(blank=True, null=True, verbose_name='Описание')
+    fabric_type = models.ForeignKey(Fabric, on_delete=models.CASCADE, verbose_name='Тип ткани')
+    image = models.ImageField(upload_to='product_images/', blank=True, null=True, verbose_name='Изображение')
+    is_active = models.BooleanField(default=True, verbose_name='Активен')
+    is_promotion = models.BooleanField(default=False, verbose_name='Акция')
+    is_new = models.BooleanField(default=False, verbose_name='Новинка')
+
+    class Meta:
+        verbose_name = 'Товар'
+        verbose_name_plural = 'Товары'
+        ordering = ['name']
+
+    def __str__(self):
+        return self.name
+
+
+class ProductVariant(models.Model):
+    product = models.ForeignKey(Product, on_delete=models.CASCADE, related_name='variants', verbose_name='Товар')
+    size = models.ForeignKey(Size, on_delete=models.CASCADE, verbose_name='Размер')
+    price = models.DecimalField(max_digits=10, decimal_places=2, verbose_name='Цена')
+    is_active = models.BooleanField(default=True, verbose_name='Активен')
+
+    class Meta:
+        verbose_name = 'Вариант товара'
+        verbose_name_plural = 'Варианты товаров'
+        ordering = ['product', 'size']
+
+    def __str__(self):
+        return f"{self.product.name} - {self.size.name} - {self.price}"
 
 
 class Store(models.Model):
