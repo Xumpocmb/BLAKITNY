@@ -1,0 +1,186 @@
+#root {
+  min-height: 100vh;
+}
+
+.appShell {
+  min-height: 100vh;
+  display: grid;
+  grid-template-rows: auto 1fr auto;
+}
+
+.container {
+  width: min(1120px, calc(100% - 32px));
+  margin: 0 auto;
+}
+
+.header {
+  position: sticky;
+  top: 0;
+  z-index: 20;
+  backdrop-filter: blur(10px);
+  background: color-mix(in srgb, var(--bg) 70%, transparent);
+  border-bottom: 1px solid var(--border);
+}
+
+.headerInner {
+  height: 72px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.brand {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.brandName {
+  font-weight: 700;
+  font-size: 14px;
+}
+
+.brandTagline {
+  font-size: 12px;
+  color: var(--muted);
+}
+
+.main {
+  padding: 22px 0 48px;
+}
+
+.footer {
+  border-top: 1px solid var(--border);
+  background: color-mix(in srgb, var(--bg) 82%, transparent);
+}
+
+.footerInner {
+  padding: 18px 0;
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.card {
+  border: 1px solid var(--border);
+  background: color-mix(in srgb, var(--surface) 88%, transparent);
+  box-shadow: var(--shadow);
+  border-radius: 18px;
+}
+
+.hero {
+  padding: 18px;
+}
+
+.heroTitle {
+  margin: 0 0 10px;
+  font-size: clamp(24px, 3vw, 34px);
+  letter-spacing: -0.02em;
+}
+
+.heroSubtitle {
+  margin: 0 0 16px;
+  color: var(--muted);
+  max-width: 70ch;
+}
+
+.slider {
+  position: relative;
+  overflow: hidden;
+  border-radius: 16px;
+  border: 1px solid color-mix(in srgb, var(--border) 60%, transparent);
+  background: linear-gradient(135deg, var(--surface-2), var(--surface));
+}
+
+.sliderTrack {
+  display: flex;
+  width: 100%;
+  transition: transform 520ms ease;
+}
+
+.slide {
+  width: 100%;
+  flex: 0 0 100%;
+}
+
+.slideMedia {
+  aspect-ratio: 16 / 6;
+  width: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.slidePlaceholder {
+  aspect-ratio: 16 / 6;
+  display: grid;
+  place-items: center;
+  padding: 22px;
+  text-align: center;
+  color: var(--muted);
+}
+
+.sliderOverlay {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(0deg, rgba(31, 35, 40, 0.32), transparent 45%);
+  pointer-events: none;
+}
+
+.sliderControls {
+  position: absolute;
+  inset: auto 12px 12px 12px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.dots {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.7);
+  background: rgba(255, 255, 255, 0.25);
+}
+
+.dotActive {
+  width: 18px;
+  background: rgba(255, 255, 255, 0.85);
+  border-color: rgba(255, 255, 255, 0.95);
+}
+
+.arrowGroup {
+  display: flex;
+  gap: 8px;
+}
+
+.arrowBtn {
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.6);
+  background: rgba(255, 255, 255, 0.18);
+  color: rgba(255, 255, 255, 0.92);
+  padding: 8px 12px;
+  line-height: 1;
+}
+
+.arrowBtn:hover {
+  border-color: rgba(255, 255, 255, 0.85);
+  box-shadow: 0 14px 28px rgba(31, 35, 40, 0.18);
+}
+
+.statusRow {
+  margin-top: 10px;
+  color: var(--muted);
+  font-size: 13px;
+}
