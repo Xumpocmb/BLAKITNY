@@ -137,6 +137,12 @@
   overflow: hidden;
 }
 
+.menuInfo {
+  padding: 12px 14px 6px;
+  font-size: 12px;
+  color: var(--muted);
+}
+
 .menuItem {
   width: 100%;
   text-align: left;
@@ -151,6 +157,119 @@
 
 .menuItem:hover {
   background: color-mix(in srgb, var(--surface-2) 65%, transparent);
+}
+
+.authOverlay {
+  position: fixed;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  background: rgba(15, 18, 22, 0.42);
+  backdrop-filter: blur(6px);
+  z-index: 40;
+  padding: 24px;
+}
+
+.authModal {
+  width: min(420px, 100%);
+  background: var(--surface);
+  border-radius: 18px;
+  border: 1px solid var(--border);
+  box-shadow: var(--shadow);
+  padding: 18px;
+  display: grid;
+  gap: 14px;
+}
+
+.authHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+}
+
+.authTitle {
+  font-weight: 700;
+  font-size: 18px;
+}
+
+.authClose {
+  border-radius: 10px;
+  border: 1px solid var(--border);
+  background: color-mix(in srgb, var(--surface-2) 70%, transparent);
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  display: grid;
+  place-items: center;
+}
+
+.authTabs {
+  display: flex;
+  gap: 8px;
+  background: color-mix(in srgb, var(--surface-2) 60%, transparent);
+  border-radius: 999px;
+  padding: 4px;
+}
+
+.authTab {
+  flex: 1;
+  border-radius: 999px;
+  border: 1px solid transparent;
+  background: transparent;
+  color: var(--muted);
+  padding: 8px 10px;
+  font-size: 13px;
+}
+
+.authTabActive {
+  background: var(--surface);
+  border-color: var(--border);
+  color: var(--text);
+}
+
+.authForm {
+  display: grid;
+  gap: 12px;
+}
+
+.authField {
+  display: grid;
+  gap: 6px;
+  font-size: 13px;
+  color: var(--muted);
+}
+
+.authInput {
+  border-radius: 12px;
+  border: 1px solid var(--border);
+  padding: 10px 12px;
+  font-size: 14px;
+  background: var(--surface);
+  color: var(--text);
+}
+
+.authInput:focus {
+  outline: 3px solid rgba(196, 151, 111, 0.35);
+  outline-offset: 2px;
+}
+
+.authActions {
+  display: grid;
+  gap: 8px;
+}
+
+.authGhost {
+  background: transparent;
+}
+
+.authError {
+  background: rgba(255, 107, 107, 0.12);
+  border: 1px solid rgba(255, 107, 107, 0.35);
+  color: #c94646;
+  padding: 8px 10px;
+  border-radius: 10px;
+  font-size: 13px;
 }
 
 .phoneIconLink {
