@@ -2,6 +2,34 @@
   min-height: 100vh;
 }
 
+.appLoading {
+  min-height: 100vh;
+  display: grid;
+  place-items: center;
+  gap: 14px;
+  padding: 24px;
+}
+
+.spinner {
+  width: 46px;
+  height: 46px;
+  border-radius: 999px;
+  border: 3px solid color-mix(in srgb, var(--border) 85%, transparent);
+  border-top-color: rgba(196, 151, 111, 0.9);
+  animation: spin 0.9s linear infinite;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.loadingText {
+  color: var(--muted);
+  font-size: 14px;
+}
+
 .appShell {
   min-height: 100vh;
   display: grid;
@@ -48,6 +76,103 @@
   color: var(--muted);
 }
 
+.nav {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 14px;
+  flex-wrap: wrap;
+}
+
+.navLink {
+  font-size: 13px;
+  color: var(--text);
+  opacity: 0.9;
+  padding: 8px 10px;
+  border-radius: 999px;
+  border: 1px solid transparent;
+  transition: background-color 0.2s ease, border-color 0.2s ease, opacity 0.2s ease;
+}
+
+.navLink:hover {
+  opacity: 1;
+  background: color-mix(in srgb, var(--surface) 85%, transparent);
+  border-color: color-mix(in srgb, var(--border) 70%, transparent);
+}
+
+.profileMenuWrap {
+  position: relative;
+}
+
+.profileBtn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border-radius: 999px;
+  border: 1px solid color-mix(in srgb, var(--border) 70%, transparent);
+  background: color-mix(in srgb, var(--surface) 88%, transparent);
+  color: var(--text);
+  padding: 0;
+}
+
+.profileBtn:hover {
+  border-color: rgba(196, 151, 111, 0.55);
+}
+
+.profileIcon {
+  display: block;
+}
+
+.profileDropdown {
+  position: absolute;
+  top: calc(100% + 10px);
+  right: 0;
+  min-width: 190px;
+  border-radius: 14px;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  box-shadow: var(--shadow);
+  overflow: hidden;
+}
+
+.menuItem {
+  width: 100%;
+  text-align: left;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  color: var(--text);
+  padding: 12px 14px;
+  font-size: 14px;
+  cursor: pointer;
+}
+
+.menuItem:hover {
+  background: color-mix(in srgb, var(--surface-2) 65%, transparent);
+}
+
+.phoneIconLink {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border-radius: 999px;
+  border: 1px solid color-mix(in srgb, var(--border) 70%, transparent);
+  background: color-mix(in srgb, var(--surface) 88%, transparent);
+  color: var(--text);
+}
+
+.phoneIconLink:hover {
+  border-color: rgba(196, 151, 111, 0.55);
+}
+
+.phoneIcon {
+  display: block;
+}
+
 .main {
   padding: 22px 0 48px;
 }
@@ -59,11 +184,65 @@
 
 .footerInner {
   padding: 18px 0;
+  display: grid;
+  gap: 16px;
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.footerGrid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 16px;
+  padding: 6px 0 10px;
+}
+
+.footerCol {
+  display: grid;
+  gap: 8px;
+  align-content: start;
+}
+
+.footerTitle {
+  color: var(--text);
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  font-size: 12px;
+  margin-bottom: 2px;
+}
+
+.footerLink {
+  color: var(--muted);
+  font-size: 13px;
+}
+
+.footerLink:hover {
+  color: var(--accent);
+}
+
+.footerBottom {
   display: flex;
   justify-content: space-between;
   gap: 12px;
-  color: var(--muted);
-  font-size: 12px;
+  border-top: 1px solid var(--border);
+  padding-top: 14px;
+}
+
+@media (max-width: 860px) {
+  .footerGrid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 460px) {
+  .footerGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .footerBottom {
+    flex-direction: column;
+  }
 }
 
 .card {
