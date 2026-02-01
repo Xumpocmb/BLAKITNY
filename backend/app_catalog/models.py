@@ -62,6 +62,8 @@ class Product(models.Model):
     subcategory = models.ForeignKey(Subcategory, on_delete=models.CASCADE, verbose_name='Подкатегория')
     name = models.CharField(max_length=200, verbose_name='Название')
     description = models.TextField(blank=True, null=True, verbose_name='Описание')
+    binding = models.TextField(blank=True, null=True, verbose_name='Переплет')
+    picture_title = models.TextField(blank=True, null=True, verbose_name='Название рисунка')
     fabric_type = models.ForeignKey(Fabric, on_delete=models.SET_NULL, verbose_name='Тип ткани', blank=True, null=True)
     image = models.ImageField(upload_to='product_images/', blank=True, null=True, verbose_name='Изображение')
     is_active = models.BooleanField(default=True, verbose_name='Активен')
