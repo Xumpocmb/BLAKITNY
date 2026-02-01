@@ -5,22 +5,30 @@ from django.contrib.auth import authenticate
 
 class RegisterSerializer(serializers.ModelSerializer):
     password = serializers.CharField(write_only=True, min_length=8)
+    password_confirm = serializers.CharField(write_only=True, required=False)
 
     class Meta:
         model = User
-        fields = ('email', 'password')
+        fields = ('email', 'password', 'password_confirm')
         extra_kwargs = {'email': {'required': True}}
 
     def validate_email(self, value):
-        """Validate that email is unique"""
-        if User.objects.filter(email=value).exists():
+        email = value.strip().lower()
+        if User.objects.filter(email__iexact=email).exists():
             raise serializers.ValidationError("Email already exists.")
-        return value
+        return email
+
+    def validate(self, attrs):
+        password = attrs.get('password')
+        password_confirm = attrs.get('password_confirm')
+        if password_confirm is not None and password != password_confirm:
+            raise serializers.ValidationError({"password_confirm": "Passwords do not match."})
+        return attrs
 
     def create(self, validated_data):
-        # Create user with email and password
+        validated_data.pop('password_confirm', None)
         user = User.objects.create_user(
-            username=validated_data['email'],  # Using email as username
+            username=validated_data['email'],
             email=validated_data['email'],
             password=validated_data['password']
         )
@@ -36,13 +44,11 @@ class LoginSerializer(serializers.Serializer):
         password = attrs.get('password')
 
         if email and password:
-            # Find user by email (since we're using email for login)
             try:
-                user = User.objects.get(email=email)
+                user = User.objects.get(email__iexact=email)
             except User.DoesNotExist:
                 raise serializers.ValidationError("Invalid email or password.")
 
-            # Authenticate using the found user
             user = authenticate(username=user.username, password=password)
 
             if user:
