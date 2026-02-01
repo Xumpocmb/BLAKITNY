@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from .models import Category, Subcategory, Size, Fabric, Product, ProductVariant
+from .models import Category, Subcategory, Size, Fabric, Product, ProductVariant, ProductImage
 
 
 class SizeSerializer(serializers.ModelSerializer):
@@ -26,9 +26,15 @@ class CategorySerializer(serializers.ModelSerializer):
         fields = '__all__'
 
 
+class ProductImageSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = ProductImage
+        fields = ['id', 'image', 'is_active', 'created_at']
+
+
 class ProductVariantSerializer(serializers.ModelSerializer):
     size = SizeSerializer(read_only=True)
-    
+
     class Meta:
         model = ProductVariant
         fields = '__all__'
@@ -36,10 +42,11 @@ class ProductVariantSerializer(serializers.ModelSerializer):
 
 class ProductSerializer(serializers.ModelSerializer):
     variants = ProductVariantSerializer(many=True, read_only=True)
+    images = ProductImageSerializer(many=True, read_only=True)
     category = CategorySerializer(read_only=True)
     subcategory = SubcategorySerializer(read_only=True)
     fabric_type = FabricSerializer(read_only=True)
-    
+
     class Meta:
         model = Product
         fields = '__all__'
@@ -49,7 +56,8 @@ class ProductListSerializer(serializers.ModelSerializer):
     category = CategorySerializer(read_only=True)
     subcategory = SubcategorySerializer(read_only=True)
     fabric_type = FabricSerializer(read_only=True)
+    images = ProductImageSerializer(many=True, read_only=True)
 
     class Meta:
         model = Product
-        fields = ['id', 'name', 'category', 'subcategory', 'fabric_type', 'binding', 'picture_title', 'image', 'is_active', 'is_promotion', 'is_new']
+        fields = ['id', 'name', 'category', 'subcategory', 'fabric_type', 'binding', 'picture_title', 'images', 'is_active', 'is_promotion', 'is_new']

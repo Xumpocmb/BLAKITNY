@@ -65,7 +65,6 @@ class Product(models.Model):
     binding = models.TextField(blank=True, null=True, verbose_name='Переплет')
     picture_title = models.TextField(blank=True, null=True, verbose_name='Название рисунка')
     fabric_type = models.ForeignKey(Fabric, on_delete=models.SET_NULL, verbose_name='Тип ткани', blank=True, null=True)
-    image = models.ImageField(upload_to='product_images/', blank=True, null=True, verbose_name='Изображение')
     is_active = models.BooleanField(default=True, verbose_name='Активен')
     is_promotion = models.BooleanField(default=False, verbose_name='Акция')
     is_new = models.BooleanField(default=False, verbose_name='Новинка')
@@ -77,6 +76,21 @@ class Product(models.Model):
 
     def __str__(self):
         return self.name
+
+
+class ProductImage(models.Model):
+    product = models.ForeignKey(Product, on_delete=models.CASCADE, related_name='images', verbose_name='Товар')
+    image = models.ImageField(upload_to='product_images/', verbose_name='Изображение')
+    is_active = models.BooleanField(default=True, verbose_name='Активна')
+    created_at = models.DateTimeField(auto_now_add=True, verbose_name='Дата создания')
+
+    class Meta:
+        verbose_name = 'Фотография товара'
+        verbose_name_plural = 'Фотографии товаров'
+        ordering = ['-created_at']
+
+    def __str__(self):
+        return f"Фото для {self.product.name}"
 
 
 class ProductVariant(models.Model):
