@@ -1,3 +1,15 @@
 from django.db import models
 
-# Create your models here.
+
+class Slider(models.Model):
+    image = models.ImageField(upload_to='slider_images/', verbose_name='Изображение')
+    alt_text = models.CharField(max_length=200, verbose_name='Описание изображения (alt текст)')
+    is_active = models.BooleanField(default=True, verbose_name='Отображать')
+
+    class Meta:
+        verbose_name = 'Слайдер'
+        verbose_name_plural = 'Слайдеры'
+        ordering = ['-id']
+
+    def __str__(self):
+        return f'Слайд {self.id} - {self.alt_text}'
