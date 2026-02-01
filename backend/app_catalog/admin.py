@@ -1,5 +1,16 @@
 from django.contrib import admin
-from .models import Category, Subcategory, Size, Fabric, Product, ProductVariant, Store
+from .models import Category, Subcategory, Size, Fabric, Product, ProductVariant, ProductImage, Store
+
+
+class ProductImageInline(admin.TabularInline):
+    """
+    Inline admin for ProductImage model to manage images directly from Product admin.
+    """
+    model = ProductImage
+    extra = 1  # Number of empty forms to display
+    fields = ('image', 'is_active')
+    verbose_name = 'Фотография товара'
+    verbose_name_plural = 'Фотографии товаров'
 
 
 class ProductVariantInline(admin.TabularInline):
@@ -16,16 +27,16 @@ class ProductVariantInline(admin.TabularInline):
 @admin.register(Product)
 class ProductAdmin(admin.ModelAdmin):
     """
-    Admin interface for Product model with inline variants.
+    Admin interface for Product model with inline variants and images.
     """
     list_display = ('name', 'category', 'subcategory', 'is_active', 'is_promotion', 'is_new')
     list_filter = ('category', 'subcategory', 'is_active', 'is_promotion', 'is_new', 'fabric_type')
     search_fields = ('name', 'description')
     # fabric_type is a ForeignKey, not a many-to-many field, so no filter_horizontal needed
-    inlines = [ProductVariantInline]  # Include the variants inline
+    inlines = [ProductImageInline, ProductVariantInline]  # Include the images and variants inline
     fieldsets = (
         ('Основная информация', {
-            'fields': ('category', 'subcategory', 'name', 'description', 'image', 'fabric_type')
+            'fields': ('category', 'subcategory', 'name', 'description', 'binding', 'picture_title', 'fabric_type')
         }),
         ('Статус', {
             'fields': ('is_active', 'is_promotion', 'is_new'),
