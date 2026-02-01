@@ -149,10 +149,7 @@ Thumbs.db
 secrets/
 fixtures/
 
-
-
-
-#front 
+# FRONTEND
 logs
 *.log
 npm-debug.log*
