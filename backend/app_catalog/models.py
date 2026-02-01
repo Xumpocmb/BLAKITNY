@@ -31,6 +31,33 @@ class Subcategory(models.Model):
         return self.name
 
 
+class FilterType(models.Model):
+    filter_type = models.CharField(max_length=50, verbose_name='Тип фильтра')
+    is_active = models.BooleanField(default=True, verbose_name='Активен')
+
+    class Meta:
+        verbose_name = 'Тип фильтра'
+        verbose_name_plural = 'Типы фильтров'
+        ordering = ['filter_type']
+
+    def __str__(self):
+        return self.filter_type
+
+
+class FilterParameter(models.Model):
+    filter_type = models.ForeignKey(FilterType, on_delete=models.CASCADE, related_name='filter_parameters', verbose_name='Тип фильтра')
+    parameter = models.CharField(max_length=100, verbose_name='Параметр')
+    is_active = models.BooleanField(default=True, verbose_name='Активен')
+
+    class Meta:
+        verbose_name = 'Параметр фильтра'
+        verbose_name_plural = 'Параметры фильтров'
+        ordering = ['filter_type', 'parameter']
+
+    def __str__(self):
+        return f"{self.filter_type.filter_type}: {self.parameter}"
+
+
 class Store(models.Model):
     city = models.CharField(max_length=100, verbose_name='Город')
     address = models.CharField(max_length=255, verbose_name='Адрес')
