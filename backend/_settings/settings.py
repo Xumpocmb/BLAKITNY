@@ -25,7 +25,11 @@ SECRET_KEY = "django-insecure--a48xbj*$gs$k-j#%2$clj5y=g2y62_+c9f+3&xz08ubs-f%5p
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = [
+    "localhost",
+    "127.0.0.1",
+    "[::1]",  # IPv6 localhost
+]
 
 
 # Application definition
@@ -39,12 +43,14 @@ INSTALLED_APPS = [
     "django.contrib.staticfiles",
     "rest_framework",
     "rest_framework_simplejwt",
+    "corsheaders",
     "app_home.apps.AppHomeConfig",
     "app_catalog.apps.AppCatalogConfig",
     "app_users.apps.AppUsersConfig",
 ]
 
 MIDDLEWARE = [
+    "corsheaders.middleware.CorsMiddleware",
     "django.middleware.security.SecurityMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
     "django.middleware.common.CommonMiddleware",
@@ -167,6 +173,21 @@ SIMPLE_JWT = {
     'SLIDING_TOKEN_LIFETIME': timedelta(minutes=5),
     'SLIDING_TOKEN_REFRESH_LIFETIME': timedelta(days=1),
 }
+
+# CORS Configuration
+CORS_ALLOWED_ORIGINS = [
+    "http://localhost:3000",  # React default port
+    "http://127.0.0.1:3000",  # Alternative React default port
+    "http://localhost:3001",  # Alternative React port
+    "http://127.0.0.1:3001",  # Alternative React port
+    "http://localhost:8080",  # Common alternative port
+    "http://127.0.0.1:8080",  # Common alternative port
+    "http://localhost:8000",  # Another common port
+    "http://127.0.0.1:8000",  # Another common port
+]
+
+# Allow credentials to be included in cross-origin requests
+CORS_ALLOW_CREDENTIALS = True
 
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/6.0/howto/static-files/
