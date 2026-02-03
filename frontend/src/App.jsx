@@ -520,7 +520,6 @@ function App() {
   const [authModalOpen, setAuthModalOpen] = useState(false);
   const [authMode, setAuthMode] = useState("login");
   const [catalogProducts, setCatalogProducts] = useState([]);
-  const [catalogError, setCatalogError] = useState(null);
   const [sizes, setSizes] = useState([]);
   const [fabrics, setFabrics] = useState([]);
   const [selectedSizes, setSelectedSizes] = useState([]);
@@ -530,6 +529,7 @@ function App() {
   const [sortMode, setSortMode] = useState("newest");
   const [activeProductId, setActiveProductId] = useState(null);
   const [activeImageIndex, setActiveImageIndex] = useState(0);
+  const [viewMode, setViewMode] = useState("home");
   const sliderKey = useMemo(
     () => sliderSlides.map((s) => s.id).join("-"),
     [sliderSlides],
@@ -617,13 +617,30 @@ function App() {
   }, [activeImageIndex, activeProductImages.length]);
 
   useEffect(() => {
-    if (!catalogProducts.length) return;
-    const match = window.location.hash.match(/product-(\d+)/);
-    if (!match) return;
-    const nextId = Number(match[1]);
-    if (!Number.isFinite(nextId)) return;
-    setActiveProductId(nextId);
-  }, [catalogProducts]);
+    const updateFromHash = () => {
+      const hash = window.location.hash || "";
+      if (hash.startsWith("#product-")) {
+        const match = hash.match(/product-(\d+)/);
+        const nextId = match ? Number(match[1]) : null;
+        if (Number.isFinite(nextId)) {
+          setActiveProductId(nextId);
+          setViewMode("product");
+          return;
+        }
+      }
+      if (hash === "#catalog") {
+        setActiveProductId(null);
+        setViewMode("catalog");
+        return;
+      }
+      setActiveProductId(null);
+      setViewMode("home");
+    };
+
+    updateFromHash();
+    window.addEventListener("hashchange", updateFromHash);
+    return () => window.removeEventListener("hashchange", updateFromHash);
+  }, []);
 
   useEffect(() => {
     const controller = new AbortController();
@@ -784,7 +801,6 @@ function App() {
         setCatalogProducts(list);
       } catch {
         setCatalogProducts([]);
-        setCatalogError("Не удалось загрузить каталог");
       }
     }
 
@@ -792,7 +808,6 @@ function App() {
       try {
         setPageReady(false);
         setSliderError(null);
-        setCatalogError(null);
 
         await loadSiteLogo(controller.signal);
         await pause(1000, controller.signal);
@@ -878,15 +893,22 @@ function App() {
     setSortMode("newest");
   };
 
+  const openCatalog = () => {
+    setViewMode("catalog");
+    window.location.hash = "catalog";
+  };
+
   const openProduct = (id) => {
     setActiveProductId(id);
-    window.history.replaceState(null, "", `#product-${id}`);
+    setViewMode("product");
+    window.location.hash = `product-${id}`;
     window.scrollTo({ top: 0, behavior: "smooth" });
   };
 
   const closeProduct = () => {
     setActiveProductId(null);
-    window.history.replaceState(null, "", "#catalog");
+    setViewMode("catalog");
+    window.location.hash = "catalog";
   };
 
   if (!pageReady) {
@@ -917,7 +939,7 @@ function App() {
             </div>
           </div>
           <nav className="nav" aria-label="Навигация">
-            <a className="navLink" href="#catalog">
+            <a className="navLink" href="#catalog" onClick={openCatalog}>
               Каталог
             </a>
             <a className="navLink" href="#about">
@@ -966,252 +988,258 @@ function App() {
 
       <main className="main">
         <div className="container">
-          {activeProduct ? (
-            <section className="productPage">
-              <button type="button" className="backBtn" onClick={closeProduct}>
-                ← Вернуться в каталог
-              </button>
-              <div className="productLayout">
-                <div className="productGallery">
-                  {activeProductImages.length > 0 ? (
-                    <>
-                      <div className="productMainImage">
-                        <img
-                          src={toProxiedUrl(
-                            activeProductImages[activeImageIndex]?.image,
-                          )}
-                          alt={activeProduct?.name || "Товар"}
-                        />
-                      </div>
-                      <div className="productThumbs">
-                        {activeProductImages.map((img, idx) => (
-                          <button
-                            key={img.id || idx}
-                            type="button"
-                            className={
-                              idx === activeImageIndex
-                                ? "thumb thumbActive"
-                                : "thumb"
-                            }
-                            onClick={() => setActiveImageIndex(idx)}
-                            aria-label={`Изображение ${idx + 1}`}
-                          >
-                            <img
-                              src={toProxiedUrl(img.image)}
-                              alt={activeProduct?.name || "Товар"}
-                            />
-                          </button>
-                        ))}
-                      </div>
-                    </>
-                  ) : (
-                    <div className="productMainImage productImagePlaceholder">
-                      Нет фото
-                    </div>
-                  )}
-                </div>
-                <div className="productInfo">
-                  <div className="productBadges">
-                    {activeProduct.is_new ? (
-                      <span className="badge badgeNew">Новинка</span>
-                    ) : null}
-                    {activeProduct.is_promotion ? (
-                      <span className="badge badgePromo">Акция</span>
-                    ) : null}
-                  </div>
-                  <h1 className="productTitleLarge">{activeProduct.name}</h1>
-                  <div className="productMetaLarge">
-                    {activeProduct.category?.name || ""}{" "}
-                    {activeProduct.subcategory?.name
-                      ? `• ${activeProduct.subcategory.name}`
-                      : ""}
-                  </div>
-                  <div className="productPriceLarge">
-                    {(() => {
-                      const range = getPriceRange(activeProduct);
-                      if (!range) return "Цена уточняется";
-                      if (range.min === range.max) {
-                        return `${formatPrice(range.min)} ₽`;
-                      }
-                      return `${formatPrice(range.min)}–${formatPrice(
-                        range.max,
-                      )} ₽`;
-                    })()}
-                  </div>
-                  <div className="productDetails">
-                    {activeProduct.description ? (
-                      <div className="productText">
-                        {activeProduct.description}
-                      </div>
-                    ) : null}
-                    {activeProduct.picture_title ? (
-                      <div className="productSpec">
-                        Рисунок: {activeProduct.picture_title}
-                      </div>
-                    ) : null}
-                    {activeProduct.binding ? (
-                      <div className="productSpec">
-                        Переплёт: {activeProduct.binding}
-                      </div>
-                    ) : null}
-                    {activeProduct.fabric_type?.name ? (
-                      <div className="productSpec">
-                        Ткань: {activeProduct.fabric_type.name}
-                      </div>
-                    ) : null}
-                  </div>
-                  {Array.isArray(activeProduct.variants) &&
-                  activeProduct.variants.length > 0 ? (
-                    <div className="productVariants">
-                      <div className="variantsTitle">Размеры</div>
-                      <div className="variantsList">
-                        {activeProduct.variants
-                          .filter((variant) => variant?.is_active !== false)
-                          .map((variant) => (
-                            <div className="variantChip" key={variant.id}>
-                              <span>{variant?.size?.name || "Размер"}</span>
-                              <span>
-                                {formatPrice(Number(variant.price))} ₽
-                              </span>
-                            </div>
+          {viewMode === "product" ? (
+            activeProduct ? (
+              <section className="productPage">
+                <button
+                  type="button"
+                  className="backBtn"
+                  onClick={closeProduct}
+                >
+                  ← Вернуться в каталог
+                </button>
+                <div className="productLayout">
+                  <div className="productGallery">
+                    {activeProductImages.length > 0 ? (
+                      <>
+                        <div className="productMainImage">
+                          <img
+                            src={toProxiedUrl(
+                              activeProductImages[activeImageIndex]?.image,
+                            )}
+                            alt={activeProduct?.name || "Товар"}
+                          />
+                        </div>
+                        <div className="productThumbs">
+                          {activeProductImages.map((img, idx) => (
+                            <button
+                              key={img.id || idx}
+                              type="button"
+                              className={
+                                idx === activeImageIndex
+                                  ? "thumb thumbActive"
+                                  : "thumb"
+                              }
+                              onClick={() => setActiveImageIndex(idx)}
+                              aria-label={`Изображение ${idx + 1}`}
+                            >
+                              <img
+                                src={toProxiedUrl(img.image)}
+                                alt={activeProduct?.name || "Товар"}
+                              />
+                            </button>
                           ))}
+                        </div>
+                      </>
+                    ) : (
+                      <div className="productMainImage productImagePlaceholder">
+                        Нет фото
                       </div>
+                    )}
+                  </div>
+                  <div className="productInfo">
+                    <div className="productBadges">
+                      {activeProduct.is_new ? (
+                        <span className="badge badgeNew">Новинка</span>
+                      ) : null}
+                      {activeProduct.is_promotion ? (
+                        <span className="badge badgePromo">Акция</span>
+                      ) : null}
                     </div>
-                  ) : null}
+                    <h1 className="productTitleLarge">{activeProduct.name}</h1>
+                    <div className="productMetaLarge">
+                      {activeProduct.category?.name || ""}{" "}
+                      {activeProduct.subcategory?.name
+                        ? `• ${activeProduct.subcategory.name}`
+                        : ""}
+                    </div>
+                    <div className="productPriceLarge">
+                      {(() => {
+                        const range = getPriceRange(activeProduct);
+                        if (!range) return "Цена уточняется";
+                        if (range.min === range.max) {
+                          return `${formatPrice(range.min)} ₽`;
+                        }
+                        return `${formatPrice(range.min)}–${formatPrice(
+                          range.max,
+                        )} ₽`;
+                      })()}
+                    </div>
+                    <div className="productDetails">
+                      {activeProduct.description ? (
+                        <div className="productText">
+                          {activeProduct.description}
+                        </div>
+                      ) : null}
+                      {activeProduct.picture_title ? (
+                        <div className="productSpec">
+                          Рисунок: {activeProduct.picture_title}
+                        </div>
+                      ) : null}
+                      {activeProduct.binding ? (
+                        <div className="productSpec">
+                          Переплёт: {activeProduct.binding}
+                        </div>
+                      ) : null}
+                      {activeProduct.fabric_type?.name ? (
+                        <div className="productSpec">
+                          Ткань: {activeProduct.fabric_type.name}
+                        </div>
+                      ) : null}
+                    </div>
+                    {Array.isArray(activeProduct.variants) &&
+                    activeProduct.variants.length > 0 ? (
+                      <div className="productVariants">
+                        <div className="variantsTitle">Размеры</div>
+                        <div className="variantsList">
+                          {activeProduct.variants
+                            .filter((variant) => variant?.is_active !== false)
+                            .map((variant) => (
+                              <div className="variantChip" key={variant.id}>
+                                <span>{variant?.size?.name || "Размер"}</span>
+                                <span>
+                                  {formatPrice(Number(variant.price))} ₽
+                                </span>
+                              </div>
+                            ))}
+                        </div>
+                      </div>
+                    ) : null}
+                  </div>
+                </div>
+              </section>
+            ) : (
+              <section className="productPage">
+                <button
+                  type="button"
+                  className="backBtn"
+                  onClick={closeProduct}
+                >
+                  ← Вернуться в каталог
+                </button>
+                <div className="card" style={{ padding: 18 }}>
+                  Товар не найден
+                </div>
+              </section>
+            )
+          ) : viewMode === "catalog" ? (
+            <section className="catalogSection" id="catalog">
+              <div className="sectionHeader">
+                <div>
+                  <div className="sectionTitle">Каталог</div>
+                  <div className="sectionSubtitle">
+                    Подберите комплект по размеру, ткани и цене
+                  </div>
                 </div>
               </div>
-            </section>
-          ) : (
-            <>
-              <section className="card hero">
-                <h1 className="heroTitle">Уют в светлых оттенках</h1>
-                <p className="heroSubtitle">
-                  Главная страница: слайдер подтягивается из бэкенда (app_home /
-                  SliderListView). Остальные блоки добавим позже.
-                </p>
-                <HeroSlider
-                  key={sliderKey}
-                  slides={sliderSlides}
-                  error={sliderError}
-                />
-                <div className="statusRow">API: /api/slider/</div>
-              </section>
-              <section className="catalogSection" id="catalog">
-                <div className="sectionHeader">
-                  <div>
-                    <div className="sectionTitle">Каталог</div>
-                    <div className="sectionSubtitle">
-                      Подберите комплект по размеру, ткани и цене
+              <div className="catalogLayout">
+                <aside className="catalogFilters card">
+                  <div className="filterGroup">
+                    <div className="filterTitle">Размер</div>
+                    <div className="filterOptions">
+                      {sizes.length === 0 ? (
+                        <div className="filterEmpty">
+                          Нет доступных размеров
+                        </div>
+                      ) : (
+                        sizes.map((size) => (
+                          <label className="filterOption" key={size.id}>
+                            <input
+                              type="checkbox"
+                              checked={selectedSizes.includes(size.id)}
+                              onChange={(e) => {
+                                setSelectedSizes((prev) =>
+                                  e.target.checked
+                                    ? [...prev, size.id]
+                                    : prev.filter((id) => id !== size.id),
+                                );
+                              }}
+                            />
+                            <span>{size.name}</span>
+                          </label>
+                        ))
+                      )}
                     </div>
                   </div>
-                  <div className="sortRow">
-                    <label className="sortLabel" htmlFor="catalogSort">
-                      Сортировка
-                    </label>
-                    <select
-                      id="catalogSort"
-                      className="sortSelect"
-                      value={sortMode}
-                      onChange={(e) => setSortMode(e.target.value)}
-                    >
-                      <option value="newest">Сначала новинки</option>
-                      <option value="promo">Сначала акции</option>
-                      <option value="price_asc">Цена по возрастанию</option>
-                      <option value="price_desc">Цена по убыванию</option>
-                      <option value="name">По названию</option>
-                    </select>
+                  <div className="filterGroup">
+                    <div className="filterTitle">Ткань</div>
+                    <div className="filterOptions">
+                      {fabrics.length === 0 ? (
+                        <div className="filterEmpty">Нет доступных тканей</div>
+                      ) : (
+                        fabrics.map((fabric) => (
+                          <label className="filterOption" key={fabric.id}>
+                            <input
+                              type="checkbox"
+                              checked={selectedFabrics.includes(fabric.id)}
+                              onChange={(e) => {
+                                setSelectedFabrics((prev) =>
+                                  e.target.checked
+                                    ? [...prev, fabric.id]
+                                    : prev.filter((id) => id !== fabric.id),
+                                );
+                              }}
+                            />
+                            <span>{fabric.name}</span>
+                          </label>
+                        ))
+                      )}
+                    </div>
                   </div>
-                </div>
-                <div className="catalogLayout">
-                  <aside className="catalogFilters card">
-                    <div className="filterGroup">
-                      <div className="filterTitle">Размер</div>
-                      <div className="filterOptions">
-                        {sizes.length === 0 ? (
-                          <div className="filterEmpty">
-                            Нет доступных размеров
-                          </div>
-                        ) : (
-                          sizes.map((size) => (
-                            <label className="filterOption" key={size.id}>
-                              <input
-                                type="checkbox"
-                                checked={selectedSizes.includes(size.id)}
-                                onChange={(e) => {
-                                  setSelectedSizes((prev) =>
-                                    e.target.checked
-                                      ? [...prev, size.id]
-                                      : prev.filter((id) => id !== size.id),
-                                  );
-                                }}
-                              />
-                              <span>{size.name}</span>
-                            </label>
-                          ))
-                        )}
-                      </div>
+                  <div className="filterGroup">
+                    <div className="filterTitle">Цена</div>
+                    <div className="priceRow">
+                      <input
+                        className="priceInput"
+                        type="text"
+                        inputMode="decimal"
+                        placeholder="От"
+                        value={priceFrom}
+                        onChange={(e) => setPriceFrom(e.target.value)}
+                      />
+                      <span className="priceDivider">—</span>
+                      <input
+                        className="priceInput"
+                        type="text"
+                        inputMode="decimal"
+                        placeholder="До"
+                        value={priceTo}
+                        onChange={(e) => setPriceTo(e.target.value)}
+                      />
                     </div>
-                    <div className="filterGroup">
-                      <div className="filterTitle">Ткань</div>
-                      <div className="filterOptions">
-                        {fabrics.length === 0 ? (
-                          <div className="filterEmpty">
-                            Нет доступных тканей
-                          </div>
-                        ) : (
-                          fabrics.map((fabric) => (
-                            <label className="filterOption" key={fabric.id}>
-                              <input
-                                type="checkbox"
-                                checked={selectedFabrics.includes(fabric.id)}
-                                onChange={(e) => {
-                                  setSelectedFabrics((prev) =>
-                                    e.target.checked
-                                      ? [...prev, fabric.id]
-                                      : prev.filter((id) => id !== fabric.id),
-                                  );
-                                }}
-                              />
-                              <span>{fabric.name}</span>
-                            </label>
-                          ))
-                        )}
-                      </div>
+                  </div>
+                  <button
+                    type="button"
+                    className="resetBtn"
+                    onClick={handleResetFilters}
+                  >
+                    Сбросить фильтры
+                  </button>
+                </aside>
+                <div className="catalogContent">
+                  <div className="catalogToolbar card">
+                    <div className="catalogCount">
+                      Товаров: {filteredProducts.length}
                     </div>
-                    <div className="filterGroup">
-                      <div className="filterTitle">Цена</div>
-                      <div className="priceRow">
-                        <input
-                          className="priceInput"
-                          type="text"
-                          inputMode="decimal"
-                          placeholder="От"
-                          value={priceFrom}
-                          onChange={(e) => setPriceFrom(e.target.value)}
-                        />
-                        <span className="priceDivider">—</span>
-                        <input
-                          className="priceInput"
-                          type="text"
-                          inputMode="decimal"
-                          placeholder="До"
-                          value={priceTo}
-                          onChange={(e) => setPriceTo(e.target.value)}
-                        />
-                      </div>
+                    <div className="sortRow">
+                      <label className="sortLabel" htmlFor="catalogSort">
+                        Сортировка
+                      </label>
+                      <select
+                        id="catalogSort"
+                        className="sortSelect"
+                        value={sortMode}
+                        onChange={(e) => setSortMode(e.target.value)}
+                      >
+                        <option value="newest">Сначала новинки</option>
+                        <option value="promo">Сначала акции</option>
+                        <option value="price_asc">Цена по возрастанию</option>
+                        <option value="price_desc">Цена по убыванию</option>
+                        <option value="name">По названию</option>
+                      </select>
                     </div>
-                    <button
-                      type="button"
-                      className="resetBtn"
-                      onClick={handleResetFilters}
-                    >
-                      Сбросить фильтры
-                    </button>
-                  </aside>
+                  </div>
                   <div className="catalogGridWrap">
-                    {catalogError ? (
-                      <div className="catalogStatus">{catalogError}</div>
-                    ) : null}
                     {filteredProducts.length === 0 ? (
                       <div className="catalogStatus">
                         Подходящих товаров пока нет
@@ -1274,8 +1302,22 @@ function App() {
                     </div>
                   </div>
                 </div>
-              </section>
-            </>
+              </div>
+            </section>
+          ) : (
+            <section className="card hero">
+              <h1 className="heroTitle">Уют в светлых оттенках</h1>
+              <p className="heroSubtitle">
+                Главная страница: слайдер подтягивается из бэкенда (app_home /
+                SliderListView). Остальные блоки добавим позже.
+              </p>
+              <HeroSlider
+                key={sliderKey}
+                slides={sliderSlides}
+                error={sliderError}
+              />
+              <div className="statusRow">API: /api/slider/</div>
+            </section>
           )}
         </div>
       </main>
@@ -1294,9 +1336,6 @@ function App() {
             </div>
             <div className="footerCol">
               <div className="footerTitle">Где купить</div>
-              <a className="footerLink" href="#catalog">
-                Каталог
-              </a>
               <a className="footerLink" href="#contacts">
                 Адреса магазинов
               </a>

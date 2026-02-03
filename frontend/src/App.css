@@ -554,15 +554,38 @@
 .catalogLayout {
   display: grid;
   grid-template-columns: minmax(0, 260px) minmax(0, 1fr);
-  gap: 18px;
+  gap: 24px;
+  align-items: start;
 }
 
 .catalogFilters {
-  padding: 16px;
+  padding: 18px;
   display: grid;
-  gap: 16px;
+  gap: 20px;
   align-content: start;
   height: fit-content;
+  position: sticky;
+  top: 90px;
+}
+
+.catalogContent {
+  display: grid;
+  gap: 18px;
+}
+
+.catalogToolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 12px 18px;
+  flex-wrap: wrap;
+}
+
+.catalogCount {
+  font-size: 13px;
+  color: var(--muted);
+  font-weight: 500;
 }
 
 .filterGroup {
@@ -866,6 +889,10 @@
 @media (max-width: 980px) {
   .catalogLayout {
     grid-template-columns: 1fr;
+  }
+
+  .catalogFilters {
+    position: static;
   }
 
   .productLayout {
