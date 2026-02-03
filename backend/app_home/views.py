@@ -23,6 +23,7 @@ class CompanyDetailsView(generics.RetrieveAPIView):
     """
     API endpoint that returns company details
     """
+    permission_classes = [AllowAny]
     queryset = CompanyDetails.objects.all()
     serializer_class = CompanyDetailsSerializer
 
