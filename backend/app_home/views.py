@@ -24,13 +24,20 @@ class CompanyDetailsView(generics.RetrieveAPIView):
     API endpoint that returns company details
     """
     permission_classes = [AllowAny]
-    queryset = CompanyDetails.objects.all()
     serializer_class = CompanyDetailsSerializer
+
+    def get_object(self):
+        # Получаем первую запись из модели CompanyDetails
+        return CompanyDetails.objects.first()
 
     def retrieve(self, request, *args, **kwargs):
         instance = self.get_object()
-        serializer = self.get_serializer(instance)
-        return Response({"company_details": serializer.data})
+        if instance:
+            serializer = self.get_serializer(instance)
+            return Response({"company_details": serializer.data})
+        else:
+            # Возвращаем пустой ответ, если запись не найдена
+            return Response({"company_details": None})
 
 
 class SiteLogoView(generics.RetrieveAPIView):
