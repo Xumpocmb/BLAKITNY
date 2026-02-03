@@ -1,11 +1,11 @@
 from rest_framework import generics
 from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
-from .models import Category, Subcategory, Size, Fabric, Product
+from .models import Category, Subcategory, Size, Fabric, Product, Store
 from .serializers import (
     CategorySerializer, SubcategorySerializer,
     SizeSerializer, FabricSerializer,
-    ProductSerializer, ProductListSerializer
+    ProductSerializer, ProductListSerializer, StoreSerializer
 )
 
 
@@ -73,3 +73,15 @@ class ProductWithVariantsListView(generics.ListAPIView):
     permission_classes = [AllowAny]
     queryset = Product.objects.prefetch_related('variants', 'images', 'category', 'subcategory', 'fabric_type').filter(is_active=True)
     serializer_class = ProductSerializer  # Use detailed serializer that includes variants
+
+
+class StoreListCreateView(generics.ListCreateAPIView):
+    permission_classes = [AllowAny]
+    queryset = Store.objects.all()
+    serializer_class = StoreSerializer
+
+
+class StoreDetailView(generics.RetrieveUpdateDestroyAPIView):
+    permission_classes = [AllowAny]
+    queryset = Store.objects.all()
+    serializer_class = StoreSerializer

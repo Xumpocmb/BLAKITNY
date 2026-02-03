@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from .models import Slider, CompanyDetails, SiteLogo
+from .models import Slider, CompanyDetails, SiteLogo, SocialNetwork, DeliveryPayment, AboutUs
 
 
 class SliderSerializer(serializers.ModelSerializer):
@@ -38,3 +38,31 @@ class SiteLogoSerializer(serializers.ModelSerializer):
                 return request.build_absolute_uri(obj.logo.url)
             return obj.logo.url
         return None
+
+
+class SocialNetworkSerializer(serializers.ModelSerializer):
+    icon_url = serializers.SerializerMethodField()
+
+    class Meta:
+        model = SocialNetwork
+        fields = ['id', 'name', 'icon_url', 'link', 'is_active']
+
+    def get_icon_url(self, obj):
+        request = self.context.get('request')
+        if obj.icon:
+            if request:
+                return request.build_absolute_uri(obj.icon.url)
+            return obj.icon.url
+        return None
+
+
+class DeliveryPaymentSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = DeliveryPayment
+        fields = ['id', 'delivery_info', 'payment_info', 'created_at', 'updated_at']
+
+
+class AboutUsSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = AboutUs
+        fields = ['id', 'title', 'content', 'created_at', 'updated_at']

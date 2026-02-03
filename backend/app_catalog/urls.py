@@ -24,4 +24,8 @@ urlpatterns = [
 
     # Product with variants list endpoint
     path('products-with-variants/', views.ProductWithVariantsListView.as_view(), name='product-with-variants-list'),
+
+    # Store endpoints
+    path('stores/', views.StoreListCreateView.as_view(), name='store-list-create'),
+    path('stores/<int:pk>/', views.StoreDetailView.as_view(), name='store-detail'),
 ]

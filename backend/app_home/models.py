@@ -46,3 +46,56 @@ class SiteLogo(models.Model):
     def load(cls):
         obj, created = cls.objects.get_or_create(pk=1)
         return obj
+
+
+class SocialNetwork(models.Model):
+    name = models.CharField(max_length=100, verbose_name='Название')
+    icon = models.ImageField(upload_to='social_icons/', verbose_name='Иконка')
+    link = models.URLField(verbose_name='Ссылка')
+    is_active = models.BooleanField(default=True, verbose_name='Активен')
+
+    class Meta:
+        verbose_name = 'Социальная сеть'
+        verbose_name_plural = 'Социальные сети'
+        ordering = ['name']
+
+    def __str__(self):
+        return self.name
+
+
+class DeliveryPayment(models.Model):
+    delivery_info = models.TextField(verbose_name='Информация о доставке')
+    payment_info = models.TextField(verbose_name='Информация об оплате')
+    created_at = models.DateTimeField(auto_now_add=True, verbose_name='Дата создания')
+    updated_at = models.DateTimeField(auto_now=True, verbose_name='Дата обновления')
+
+    class Meta:
+        verbose_name = 'Доставка и оплата'
+        verbose_name_plural = 'Доставка и оплата'
+
+    def __str__(self):
+        return "Информация о доставке и оплате"
+
+    @classmethod
+    def load(cls):
+        obj, created = cls.objects.get_or_create(pk=1)
+        return obj
+
+
+class AboutUs(models.Model):
+    title = models.CharField(max_length=200, verbose_name='Заголовок')
+    content = models.TextField(verbose_name='Текстовая информация о компании')
+    created_at = models.DateTimeField(auto_now_add=True, verbose_name='Дата создания')
+    updated_at = models.DateTimeField(auto_now=True, verbose_name='Дата обновления')
+
+    class Meta:
+        verbose_name = 'О нас'
+        verbose_name_plural = 'О нас'
+
+    def __str__(self):
+        return self.title
+
+    @classmethod
+    def load(cls):
+        obj, created = cls.objects.get_or_create(pk=1)
+        return obj
