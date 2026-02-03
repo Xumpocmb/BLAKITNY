@@ -62,6 +62,22 @@ function preloadImages(urls, signal) {
   return Promise.all(tasks).then(() => undefined);
 }
 
+function pause(ms, signal) {
+  return new Promise((resolve) => {
+    if (signal?.aborted) return resolve();
+    const id = window.setTimeout(() => {
+      if (signal) signal.removeEventListener("abort", onAbort);
+      resolve();
+    }, ms);
+    const onAbort = () => {
+      window.clearTimeout(id);
+      if (signal) signal.removeEventListener("abort", onAbort);
+      resolve();
+    };
+    if (signal) signal.addEventListener("abort", onAbort, { once: true });
+  });
+}
+
 const ACCESS_TOKEN_KEY = "blakitny_access_token";
 const REFRESH_TOKEN_KEY = "blakitny_refresh_token";
 
@@ -470,7 +486,6 @@ function App() {
   const [siteLogo, setSiteLogo] = useState({ type: "text", value: "BLAKITNY" });
   const [companyDetails, setCompanyDetails] = useState(null);
   const [authUser, setAuthUser] = useState(null);
-  const [authTokens, setAuthTokens] = useState(() => readStoredTokens());
   const [authModalOpen, setAuthModalOpen] = useState(false);
   const [authMode, setAuthMode] = useState("login");
   const sliderKey = useMemo(
@@ -485,11 +500,9 @@ function App() {
   useEffect(() => {
     const controller = new AbortController();
 
-    async function loadSiteLogo() {
+    async function loadSiteLogo(signal) {
       try {
-        const res = await fetch("/api/site-logo/", {
-          signal: controller.signal,
-        });
+        const res = await fetch("/api/site-logo/", { signal });
         if (!res.ok) throw new Error(`HTTP ${res.status}`);
         const data = await res.json();
         if (data?.logo?.logo_url) {
@@ -506,18 +519,9 @@ function App() {
       }
     }
 
-    loadSiteLogo();
-    return () => controller.abort();
-  }, []);
-
-  useEffect(() => {
-    const controller = new AbortController();
-
-    async function loadCompanyDetails() {
+    async function loadCompanyDetails(signal) {
       try {
-        const res = await fetch("/api/company-details/", {
-          signal: controller.signal,
-        });
+        const res = await fetch("/api/company-details/", { signal });
         if (!res.ok) throw new Error(`HTTP ${res.status}`);
         const data = await res.json();
         const details = data?.company_details;
@@ -534,19 +538,12 @@ function App() {
       }
     }
 
-    loadCompanyDetails();
-    return () => controller.abort();
-  }, []);
-
-  useEffect(() => {
-    const controller = new AbortController();
-
-    async function loadProfile(accessToken, refreshToken) {
+    async function loadProfile(accessToken, refreshToken, signal) {
       try {
         const res = await fetch("/api/users/me/", {
           method: "GET",
           headers: { Authorization: `Bearer ${accessToken}` },
-          signal: controller.signal,
+          signal,
         });
         if (res.ok) {
           const data = await res.json();
@@ -554,12 +551,14 @@ function App() {
           return true;
         }
         if (res.status !== 401 || !refreshToken) return false;
-        const refreshed = await refreshTokens(refreshToken, controller.signal);
+        await pause(1000, signal);
+        const refreshed = await refreshTokens(refreshToken, signal);
         if (!refreshed) return false;
+        await pause(1000, signal);
         const retry = await fetch("/api/users/me/", {
           method: "GET",
           headers: { Authorization: `Bearer ${refreshed.access}` },
-          signal: controller.signal,
+          signal,
         });
         if (!retry.ok) return false;
         const data = await retry.json();
@@ -585,7 +584,6 @@ function App() {
           refresh: data?.refresh || refreshToken,
         };
         if (!nextTokens.access) return null;
-        setAuthTokens(nextTokens);
         storeTokens(nextTokens);
         return nextTokens;
       } catch {
@@ -593,31 +591,20 @@ function App() {
       }
     }
 
-    async function bootstrapAuth() {
-      const tokens = authTokens || readStoredTokens();
+    async function bootstrapAuth(signal) {
+      const tokens = readStoredTokens();
       if (!tokens) {
         return;
       }
-      const ok = await loadProfile(tokens.access, tokens.refresh);
+      const ok = await loadProfile(tokens.access, tokens.refresh, signal);
       if (!ok) {
-        setAuthTokens(null);
         clearTokens();
       }
     }
 
-    bootstrapAuth();
-    return () => controller.abort();
-  }, [authTokens]);
-
-  useEffect(() => {
-    const controller = new AbortController();
-
-    async function bootstrap() {
+    async function loadSlider(signal) {
       try {
-        setPageReady(false);
-        setSliderError(null);
-
-        const res = await fetch("/api/slider/", { signal: controller.signal });
+        const res = await fetch("/api/slider/", { signal });
         if (!res.ok) throw new Error(`HTTP ${res.status}`);
         const data = await res.json();
         const slides = Array.isArray(data?.sliders) ? data.sliders : [];
@@ -626,11 +613,26 @@ function App() {
         const imgUrls = slides
           .map((s) => toProxiedUrl(s?.image_url))
           .filter((u) => typeof u === "string" && u.length > 0);
-        await preloadImages(imgUrls, controller.signal);
+        await preloadImages(imgUrls, signal);
       } catch (e) {
         if (e?.name === "AbortError") return;
         setSliderSlides([]);
         setSliderError(e instanceof Error ? e.message : "Ошибка загрузки");
+      }
+    }
+
+    async function bootstrap() {
+      try {
+        setPageReady(false);
+        setSliderError(null);
+
+        await loadSiteLogo(controller.signal);
+        await pause(1000, controller.signal);
+        await loadCompanyDetails(controller.signal);
+        await pause(1000, controller.signal);
+        await bootstrapAuth(controller.signal);
+        await pause(1000, controller.signal);
+        await loadSlider(controller.signal);
       } finally {
         if (!controller.signal.aborted) setPageReady(true);
       }
@@ -662,7 +664,6 @@ function App() {
       throw new Error("Некорректный ответ сервера");
     }
     const nextTokens = { access: tokens.access, refresh: tokens.refresh };
-    setAuthTokens(nextTokens);
     storeTokens(nextTokens);
     setAuthUser({ id: data?.user_id, email: data?.email || email });
   };
@@ -686,14 +687,12 @@ function App() {
       throw new Error("Некорректный ответ сервера");
     }
     const nextTokens = { access: tokens.access, refresh: tokens.refresh };
-    setAuthTokens(nextTokens);
     storeTokens(nextTokens);
     setAuthUser({ id: data?.user_id, email: data?.email || email });
   };
 
   const handleLogout = () => {
     setAuthUser(null);
-    setAuthTokens(null);
     clearTokens();
   };
 
