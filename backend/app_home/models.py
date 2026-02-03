@@ -46,3 +46,18 @@ class SiteLogo(models.Model):
     def load(cls):
         obj, created = cls.objects.get_or_create(pk=1)
         return obj
+
+
+class SocialNetwork(models.Model):
+    name = models.CharField(max_length=100, verbose_name='Название')
+    icon = models.ImageField(upload_to='social_icons/', verbose_name='Иконка')
+    link = models.URLField(verbose_name='Ссылка')
+    is_active = models.BooleanField(default=True, verbose_name='Активен')
+
+    class Meta:
+        verbose_name = 'Социальная сеть'
+        verbose_name_plural = 'Социальные сети'
+        ordering = ['name']
+
+    def __str__(self):
+        return self.name

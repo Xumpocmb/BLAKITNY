@@ -1,8 +1,8 @@
 from rest_framework.response import Response
 from rest_framework import generics
 from rest_framework.permissions import AllowAny
-from .models import Slider, CompanyDetails, SiteLogo
-from .serializers import SliderSerializer, CompanyDetailsSerializer, SiteLogoSerializer
+from .models import Slider, CompanyDetails, SiteLogo, SocialNetwork
+from .serializers import SliderSerializer, CompanyDetailsSerializer, SiteLogoSerializer, SocialNetworkSerializer
 
 
 class SliderListView(generics.ListAPIView):
@@ -65,3 +65,12 @@ class SiteLogoView(generics.RetrieveAPIView):
     def queryset(self):
         from .models import SiteLogo
         return SiteLogo.objects.all()
+
+
+class SocialNetworkListView(generics.ListAPIView):
+    """
+    API endpoint that returns social networks
+    """
+    permission_classes = [AllowAny]
+    queryset = SocialNetwork.objects.filter(is_active=True)
+    serializer_class = SocialNetworkSerializer
