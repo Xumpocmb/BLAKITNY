@@ -1,5 +1,6 @@
 from rest_framework.response import Response
 from rest_framework import generics
+from rest_framework.permissions import AllowAny
 from .models import Slider, CompanyDetails, SiteLogo
 from .serializers import SliderSerializer, CompanyDetailsSerializer, SiteLogoSerializer
 
@@ -8,6 +9,7 @@ class SliderListView(generics.ListAPIView):
     """
     API endpoint that returns active slider images
     """
+    permission_classes = [AllowAny]
     queryset = Slider.objects.filter(is_active=True)
     serializer_class = SliderSerializer
 
@@ -34,6 +36,7 @@ class SiteLogoView(generics.RetrieveAPIView):
     """
     API endpoint that returns site logo
     """
+    permission_classes = [AllowAny]
     serializer_class = SiteLogoSerializer
 
     def retrieve(self, request, *args, **kwargs):
