@@ -355,6 +355,24 @@
   padding-top: 14px;
 }
 
+.footerDetails {
+  margin-top: 12px;
+  display: grid;
+  gap: 6px;
+  font-size: 12px;
+  color: var(--muted);
+}
+
+.footerDetailsTitle {
+  font-weight: 600;
+  color: var(--text);
+}
+
+.footerDetailsText {
+  white-space: pre-wrap;
+  line-height: 1.4;
+}
+
 @media (max-width: 860px) {
   .footerGrid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
