@@ -1,5 +1,5 @@
 from django.contrib import admin
-from .models import Slider, CompanyDetails, SiteLogo, SocialNetwork, DeliveryPayment
+from .models import Slider, CompanyDetails, SiteLogo, SocialNetwork, DeliveryPayment, AboutUs
 
 
 @admin.register(Slider)
@@ -52,6 +52,23 @@ class DeliveryPaymentAdmin(admin.ModelAdmin):
     def has_add_permission(self, request):
         # Запрещаем добавление новых записей, если уже существует
         count = DeliveryPayment.objects.count()
+        if count > 0:
+            return False
+        return True
+
+    def has_delete_permission(self, request, obj=None):
+        # Запрещаем удаление единственной записи
+        return False
+
+
+@admin.register(AboutUs)
+class AboutUsAdmin(admin.ModelAdmin):
+    list_display = ("id", "title", "created_at", "updated_at")
+    readonly_fields = ("created_at", "updated_at")
+
+    def has_add_permission(self, request):
+        # Запрещаем добавление новых записей, если уже существует
+        count = AboutUs.objects.count()
         if count > 0:
             return False
         return True

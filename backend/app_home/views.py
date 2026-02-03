@@ -1,8 +1,8 @@
 from rest_framework.response import Response
 from rest_framework import generics
 from rest_framework.permissions import AllowAny
-from .models import Slider, CompanyDetails, SiteLogo, SocialNetwork, DeliveryPayment
-from .serializers import SliderSerializer, CompanyDetailsSerializer, SiteLogoSerializer, SocialNetworkSerializer, DeliveryPaymentSerializer
+from .models import Slider, CompanyDetails, SiteLogo, SocialNetwork, DeliveryPayment, AboutUs
+from .serializers import SliderSerializer, CompanyDetailsSerializer, SiteLogoSerializer, SocialNetworkSerializer, DeliveryPaymentSerializer, AboutUsSerializer
 
 
 class SliderListView(generics.ListAPIView):
@@ -91,3 +91,20 @@ class DeliveryPaymentView(generics.RetrieveAPIView):
     def queryset(self):
         from .models import DeliveryPayment
         return DeliveryPayment.objects.all()
+
+
+class AboutUsView(generics.RetrieveAPIView):
+    """
+    API endpoint that returns 'About Us' information
+    """
+    permission_classes = [AllowAny]
+    serializer_class = AboutUsSerializer
+
+    def get_object(self):
+        # Получаем или создаем единственный экземпляр информации "О нас"
+        return self.queryset.model.load()
+
+    @property
+    def queryset(self):
+        from .models import AboutUs
+        return AboutUs.objects.all()

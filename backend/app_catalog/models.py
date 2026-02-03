@@ -111,6 +111,7 @@ class ProductVariant(models.Model):
 class Store(models.Model):
     city = models.CharField(max_length=100, verbose_name='Город')
     address = models.CharField(max_length=255, verbose_name='Адрес')
+    phone = models.CharField(max_length=20, verbose_name='Телефон', blank=True, null=True)
     work_schedule = models.TextField(verbose_name='График работы')
 
     class Meta:
