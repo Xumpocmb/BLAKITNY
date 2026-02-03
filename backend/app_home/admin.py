@@ -1,5 +1,5 @@
 from django.contrib import admin
-from .models import Slider, CompanyDetails, SiteLogo, SocialNetwork
+from .models import Slider, CompanyDetails, SiteLogo, SocialNetwork, DeliveryPayment
 
 
 @admin.register(Slider)
@@ -42,3 +42,20 @@ class SocialNetworkAdmin(admin.ModelAdmin):
     list_filter = ("is_active",)
     search_fields = ("name", "link")
     list_display_links = ("id", "name")
+
+
+@admin.register(DeliveryPayment)
+class DeliveryPaymentAdmin(admin.ModelAdmin):
+    list_display = ("id", "__str__", "created_at", "updated_at")
+    readonly_fields = ("created_at", "updated_at")
+
+    def has_add_permission(self, request):
+        # Запрещаем добавление новых записей, если уже существует
+        count = DeliveryPayment.objects.count()
+        if count > 0:
+            return False
+        return True
+
+    def has_delete_permission(self, request, obj=None):
+        # Запрещаем удаление единственной записи
+        return False

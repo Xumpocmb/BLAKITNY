@@ -61,3 +61,22 @@ class SocialNetwork(models.Model):
 
     def __str__(self):
         return self.name
+
+
+class DeliveryPayment(models.Model):
+    delivery_info = models.TextField(verbose_name='Информация о доставке')
+    payment_info = models.TextField(verbose_name='Информация об оплате')
+    created_at = models.DateTimeField(auto_now_add=True, verbose_name='Дата создания')
+    updated_at = models.DateTimeField(auto_now=True, verbose_name='Дата обновления')
+
+    class Meta:
+        verbose_name = 'Доставка и оплата'
+        verbose_name_plural = 'Доставка и оплата'
+
+    def __str__(self):
+        return "Информация о доставке и оплате"
+
+    @classmethod
+    def load(cls):
+        obj, created = cls.objects.get_or_create(pk=1)
+        return obj

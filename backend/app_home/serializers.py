@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from .models import Slider, CompanyDetails, SiteLogo, SocialNetwork
+from .models import Slider, CompanyDetails, SiteLogo, SocialNetwork, DeliveryPayment
 
 
 class SliderSerializer(serializers.ModelSerializer):
@@ -54,3 +54,9 @@ class SocialNetworkSerializer(serializers.ModelSerializer):
                 return request.build_absolute_uri(obj.icon.url)
             return obj.icon.url
         return None
+
+
+class DeliveryPaymentSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = DeliveryPayment
+        fields = ['id', 'delivery_info', 'payment_info', 'created_at', 'updated_at']
