@@ -182,8 +182,8 @@ CORS_ALLOWED_ORIGINS = [
     "http://127.0.0.1:3001",  # Alternative React port
     "http://localhost:8080",  # Common alternative port
     "http://127.0.0.1:8080",  # Common alternative port
-    "http://localhost:8000",  # Another common port
-    "http://127.0.0.1:8000",  # Another common port
+    "http://localhost:5173",  # Another common port
+    "http://127.0.0.1:5173",  # Another common port
 ]
 
 # Allow credentials to be included in cross-origin requests
