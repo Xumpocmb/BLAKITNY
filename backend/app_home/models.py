@@ -26,3 +26,23 @@ class CompanyDetails(models.Model):
 
     def __str__(self):
         return self.name
+
+
+class SiteLogo(models.Model):
+    logo = models.ImageField(upload_to='logo/', verbose_name='Логотип', blank=True, null=True)
+    created_at = models.DateTimeField(auto_now_add=True, verbose_name='Дата создания')
+    updated_at = models.DateTimeField(auto_now=True, verbose_name='Дата обновления')
+
+    class Meta:
+        verbose_name = 'Логотип сайта'
+        verbose_name_plural = 'Логотип сайта'
+        # Ограничение, чтобы была только одна запись
+        # Это достигается с помощью бизнес-логики в представлении
+
+    def __str__(self):
+        return f"Логотип сайта ({'установлен' if self.logo else 'не установлен'})"
+
+    @classmethod
+    def load(cls):
+        obj, created = cls.objects.get_or_create(pk=1)
+        return obj

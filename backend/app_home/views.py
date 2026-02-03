@@ -1,7 +1,7 @@
 from rest_framework.response import Response
 from rest_framework import generics
-from .models import Slider, CompanyDetails
-from .serializers import SliderSerializer, CompanyDetailsSerializer
+from .models import Slider, CompanyDetails, SiteLogo
+from .serializers import SliderSerializer, CompanyDetailsSerializer, SiteLogoSerializer
 
 
 class SliderListView(generics.ListAPIView):
@@ -28,3 +28,29 @@ class CompanyDetailsView(generics.RetrieveAPIView):
         instance = self.get_object()
         serializer = self.get_serializer(instance)
         return Response({"company_details": serializer.data})
+
+
+class SiteLogoView(generics.RetrieveAPIView):
+    """
+    API endpoint that returns site logo
+    """
+    serializer_class = SiteLogoSerializer
+
+    def retrieve(self, request, *args, **kwargs):
+        logo_instance = self.get_object()
+        serializer = self.get_serializer(logo_instance)
+
+        # Если логотип не установлен, возвращаем текстовое значение
+        if not logo_instance.logo:
+            return Response({"site_name": "BLAKITNY"})
+        else:
+            return Response({"logo": serializer.data})
+
+    def get_object(self):
+        # Получаем или создаем единственный экземпляр логотипа
+        return self.queryset.model.load()
+
+    @property
+    def queryset(self):
+        from .models import SiteLogo
+        return SiteLogo.objects.all()

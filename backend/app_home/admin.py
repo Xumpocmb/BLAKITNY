@@ -1,5 +1,5 @@
 from django.contrib import admin
-from .models import Slider, CompanyDetails
+from .models import Slider, CompanyDetails, SiteLogo
 
 
 @admin.register(Slider)
@@ -16,3 +16,20 @@ class CompanyDetailsAdmin(admin.ModelAdmin):
     list_display = ("id", "name", "description")
     search_fields = ("name", "description")
     list_display_links = ("id", "name")
+
+
+@admin.register(SiteLogo)
+class SiteLogoAdmin(admin.ModelAdmin):
+    list_display = ("id", "__str__", "created_at", "updated_at")
+    readonly_fields = ("created_at", "updated_at")
+
+    def has_add_permission(self, request):
+        # Запрещаем добавление новых записей, если уже существует
+        count = SiteLogo.objects.count()
+        if count > 0:
+            return False
+        return True
+
+    def has_delete_permission(self, request, obj=None):
+        # Разрешаем удаление только если есть более одной записи (хотя по логике не должно быть)
+        return SiteLogo.objects.count() > 1
