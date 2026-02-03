@@ -71,6 +71,13 @@
   font-size: 14px;
 }
 
+.brandLogo {
+  height: 26px;
+  max-width: 160px;
+  object-fit: contain;
+  display: block;
+}
+
 .brandTagline {
   font-size: 12px;
   color: var(--muted);
