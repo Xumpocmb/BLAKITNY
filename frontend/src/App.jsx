@@ -467,6 +467,7 @@ function App() {
   const [pageReady, setPageReady] = useState(false);
   const [sliderSlides, setSliderSlides] = useState([]);
   const [sliderError, setSliderError] = useState(null);
+  const [siteLogo, setSiteLogo] = useState({ type: "text", value: "BLAKITNY" });
   const [authUser, setAuthUser] = useState(null);
   const [authTokens, setAuthTokens] = useState(() => readStoredTokens());
   const [authModalOpen, setAuthModalOpen] = useState(false);
@@ -479,6 +480,34 @@ function App() {
   useEffect(() => {
     applyTheme(THEMES[themeName] ?? THEMES.cream);
   }, [themeName]);
+
+  useEffect(() => {
+    const controller = new AbortController();
+
+    async function loadSiteLogo() {
+      try {
+        const res = await fetch("/api/site-logo/", {
+          signal: controller.signal,
+        });
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        const data = await res.json();
+        if (data?.logo?.logo_url) {
+          setSiteLogo({ type: "image", value: data.logo.logo_url });
+          return;
+        }
+        if (data?.site_name) {
+          setSiteLogo({ type: "text", value: data.site_name });
+          return;
+        }
+        setSiteLogo({ type: "text", value: "BLAKITNY" });
+      } catch {
+        setSiteLogo({ type: "text", value: "BLAKITNY" });
+      }
+    }
+
+    loadSiteLogo();
+    return () => controller.abort();
+  }, []);
 
   useEffect(() => {
     const controller = new AbortController();
@@ -653,7 +682,15 @@ function App() {
       <header className="header">
         <div className="container headerInner">
           <div className="brand">
-            <div className="brandName">BLAKITNY</div>
+            {siteLogo.type === "image" ? (
+              <img
+                className="brandLogo"
+                src={toProxiedUrl(siteLogo.value)}
+                alt="BLAKITNY"
+              />
+            ) : (
+              <div className="brandName">{siteLogo.value}</div>
+            )}
             <div className="brandTagline">
               Постельное бельё и домашний текстиль
             </div>
