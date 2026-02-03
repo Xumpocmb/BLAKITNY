@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from .models import Slider
+from .models import Slider, CompanyDetails
 
 
 class SliderSerializer(serializers.ModelSerializer):
@@ -16,3 +16,9 @@ class SliderSerializer(serializers.ModelSerializer):
                 return request.build_absolute_uri(obj.image.url)
             return obj.image.url
         return None
+
+
+class CompanyDetailsSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = CompanyDetails
+        fields = ['id', 'name', 'description']

@@ -13,3 +13,16 @@ class Slider(models.Model):
 
     def __str__(self):
         return f'Слайд {self.id} - {self.alt_text}'
+
+
+class CompanyDetails(models.Model):
+    name = models.CharField(max_length=200, verbose_name='Название')
+    description = models.TextField(verbose_name='Описание')
+
+    class Meta:
+        verbose_name = 'Реквизиты компании'
+        verbose_name_plural = 'Реквизиты компании'
+        ordering = ['name']
+
+    def __str__(self):
+        return self.name
