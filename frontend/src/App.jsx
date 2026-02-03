@@ -468,6 +468,7 @@ function App() {
   const [sliderSlides, setSliderSlides] = useState([]);
   const [sliderError, setSliderError] = useState(null);
   const [siteLogo, setSiteLogo] = useState({ type: "text", value: "BLAKITNY" });
+  const [companyDetails, setCompanyDetails] = useState(null);
   const [authUser, setAuthUser] = useState(null);
   const [authTokens, setAuthTokens] = useState(() => readStoredTokens());
   const [authModalOpen, setAuthModalOpen] = useState(false);
@@ -506,6 +507,34 @@ function App() {
     }
 
     loadSiteLogo();
+    return () => controller.abort();
+  }, []);
+
+  useEffect(() => {
+    const controller = new AbortController();
+
+    async function loadCompanyDetails() {
+      try {
+        const res = await fetch("/api/company-details/", {
+          signal: controller.signal,
+        });
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        const data = await res.json();
+        const details = data?.company_details;
+        if (details?.name || details?.description) {
+          setCompanyDetails({
+            name: details?.name || "",
+            description: details?.description || "",
+          });
+          return;
+        }
+        setCompanyDetails(null);
+      } catch {
+        setCompanyDetails(null);
+      }
+    }
+
+    loadCompanyDetails();
     return () => controller.abort();
   }, []);
 
@@ -805,6 +834,18 @@ function App() {
             <div>© {new Date().getFullYear()} Blakitny</div>
             <div>Сделано на React</div>
           </div>
+          {companyDetails ? (
+            <div className="footerDetails">
+              {companyDetails.name ? (
+                <div className="footerDetailsTitle">{companyDetails.name}</div>
+              ) : null}
+              {companyDetails.description ? (
+                <div className="footerDetailsText">
+                  {companyDetails.description}
+                </div>
+              ) : null}
+            </div>
+          ) : null}
         </div>
       </footer>
       <AuthModal
