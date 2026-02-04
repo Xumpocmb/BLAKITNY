@@ -508,6 +508,48 @@ function AuthModal({ open, mode, onClose, onLogin, onRegister, onSwitch }) {
   );
 }
 
+function ImageModal({ images, activeIndex, onClose, onPrev, onNext }) {
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      if (e.key === "Escape") onClose();
+      if (e.key === "ArrowLeft") onPrev();
+      if (e.key === "ArrowRight") onNext();
+    };
+    document.addEventListener("keydown", handleKeyDown);
+    return () => document.removeEventListener("keydown", handleKeyDown);
+  }, [onClose, onPrev, onNext]);
+
+  if (!images || images.length === 0) return null;
+
+  const currentImage = images[activeIndex];
+
+  return (
+    <div className="imageModalOverlay" onClick={onClose}>
+      <div className="imageModalContent" onClick={(e) => e.stopPropagation()}>
+        <button className="imageModalClose" onClick={onClose}>
+          ✕
+        </button>
+        <button className="imageModalNav prev" onClick={onPrev}>
+          ←
+        </button>
+        <div className="imageModalImageWrapper">
+          <img
+            src={toProxiedUrl(currentImage?.image)}
+            alt="Просмотр"
+            className="imageModalImage"
+          />
+        </div>
+        <button className="imageModalNav next" onClick={onNext}>
+          →
+        </button>
+        <div className="imageModalCounter">
+          {activeIndex + 1} / {images.length}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function App() {
   const [themeName] = useState("cream");
   const phone = "+79990000000";
@@ -530,6 +572,7 @@ function App() {
   const [activeProductId, setActiveProductId] = useState(null);
   const [activeImageIndex, setActiveImageIndex] = useState(0);
   const [viewMode, setViewMode] = useState("home");
+  const [modalOpen, setModalOpen] = useState(false);
   const sliderKey = useMemo(
     () => sliderSlides.map((s) => s.id).join("-"),
     [sliderSlides],
@@ -911,6 +954,32 @@ function App() {
     window.location.hash = "catalog";
   };
 
+  const openImageModal = (index) => {
+    setActiveImageIndex(index);
+    setModalOpen(true);
+  };
+
+  const closeImageModal = () => {
+    setModalOpen(false);
+  };
+
+  const prevImage = () => {
+    setActiveImageIndex((prev) =>
+      prev === 0 ? activeProductImages.length - 1 : prev - 1,
+    );
+  };
+
+  const nextImage = () => {
+    setActiveImageIndex((prev) => (prev + 1) % activeProductImages.length);
+  };
+
+  const goHome = (e) => {
+    e.preventDefault();
+    window.location.hash = "";
+    setViewMode("home");
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  };
+
   if (!pageReady) {
     return (
       <div className="appLoading" aria-busy="true" aria-live="polite">
@@ -925,18 +994,22 @@ function App() {
       <header className="header">
         <div className="container headerInner">
           <div className="brand">
-            {siteLogo.type === "image" ? (
-              <img
-                className="brandLogo"
-                src={toProxiedUrl(siteLogo.value)}
-                alt="BLAKITNY"
-              />
-            ) : (
-              <div className="brandName">{siteLogo.value}</div>
-            )}
-            <div className="brandTagline">
-              Постельное бельё и домашний текстиль
-            </div>
+            <a
+              href="#"
+              className="brandLink"
+              onClick={goHome}
+              aria-label="На главную"
+            >
+              {siteLogo.type === "image" ? (
+                <img
+                  className="brandLogo"
+                  src={toProxiedUrl(siteLogo.value)}
+                  alt="BLAKITNY"
+                />
+              ) : (
+                <div className="brandName">{siteLogo.value}</div>
+              )}
+            </a>
           </div>
           <nav className="nav" aria-label="Навигация">
             <a className="navLink" href="#catalog" onClick={openCatalog}>
@@ -966,7 +1039,7 @@ function App() {
                 aria-hidden="true"
               >
                 <path
-                  d="M7.1 3.9c.4-.4.9-.6 1.4-.4l2.7 1c.6.2 1 .8.9 1.4l-.5 2.4c-.1.5 0 1 .4 1.4l2.8 2.8c.4.4.9.5 1.4.4l2.4-.5c.6-.1 1.2.3 1.4.9l1 2.7c.2.5 0 1.1-.4 1.4l-1.4 1.4c-.9.9-2.2 1.2-3.4.8-3.2-1.1-6.3-3.2-9.1-6-2.8-2.8-4.9-5.9-6-9.1-.4-1.2-.1-2.5.8-3.4L7.1 3.9Z"
+                  d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"
                   stroke="currentColor"
                   strokeWidth="1.8"
                   strokeLinecap="round"
@@ -1002,7 +1075,10 @@ function App() {
                   <div className="productGallery">
                     {activeProductImages.length > 0 ? (
                       <>
-                        <div className="productMainImage">
+                        <div
+                          className="productMainImage"
+                          onClick={() => openImageModal(activeImageIndex)}
+                        >
                           <img
                             src={toProxiedUrl(
                               activeProductImages[activeImageIndex]?.image,
@@ -1133,9 +1209,16 @@ function App() {
                 </div>
               </div>
               <div className="catalogLayout">
-                <aside className="catalogFilters card">
-                  <div className="filterGroup">
-                    <div className="filterTitle">Размер</div>
+                <aside className="catalogFilters">
+                  <details className="filterGroup" open>
+                    <summary className="filterSummary">
+                      <span className="filterTitle">Размер</span>
+                      {selectedSizes.length > 0 ? (
+                        <span className="filterCount">
+                          Выбрано: {selectedSizes.length}
+                        </span>
+                      ) : null}
+                    </summary>
                     <div className="filterOptions">
                       {sizes.length === 0 ? (
                         <div className="filterEmpty">
@@ -1160,9 +1243,16 @@ function App() {
                         ))
                       )}
                     </div>
-                  </div>
-                  <div className="filterGroup">
-                    <div className="filterTitle">Ткань</div>
+                  </details>
+                  <details className="filterGroup" open>
+                    <summary className="filterSummary">
+                      <span className="filterTitle">Ткань</span>
+                      {selectedFabrics.length > 0 ? (
+                        <span className="filterCount">
+                          Выбрано: {selectedFabrics.length}
+                        </span>
+                      ) : null}
+                    </summary>
                     <div className="filterOptions">
                       {fabrics.length === 0 ? (
                         <div className="filterEmpty">Нет доступных тканей</div>
@@ -1185,9 +1275,11 @@ function App() {
                         ))
                       )}
                     </div>
-                  </div>
-                  <div className="filterGroup">
-                    <div className="filterTitle">Цена</div>
+                  </details>
+                  <details className="filterGroup" open>
+                    <summary className="filterSummary">
+                      <span className="filterTitle">Цена</span>
+                    </summary>
                     <div className="priceRow">
                       <input
                         className="priceInput"
@@ -1207,7 +1299,7 @@ function App() {
                         onChange={(e) => setPriceTo(e.target.value)}
                       />
                     </div>
-                  </div>
+                  </details>
                   <button
                     type="button"
                     className="resetBtn"
@@ -1359,10 +1451,6 @@ function App() {
               </a>
             </div>
           </div>
-          <div className="footerBottom">
-            <div>© {new Date().getFullYear()} Blakitny</div>
-            <div>Сделано на React</div>
-          </div>
           {companyDetails ? (
             <div className="footerDetails">
               {companyDetails.name ? (
@@ -1375,6 +1463,10 @@ function App() {
               ) : null}
             </div>
           ) : null}
+          <div className="footerBottom">
+            <div>© {new Date().getFullYear()} Blakitny</div>
+            <div>Политика конфиденциальности</div>
+          </div>
         </div>
       </footer>
       <AuthModal
@@ -1385,6 +1477,15 @@ function App() {
         onRegister={handleRegister}
         onSwitch={(next) => setAuthMode(next)}
       />
+      {modalOpen && (
+        <ImageModal
+          images={activeProductImages}
+          activeIndex={activeImageIndex}
+          onClose={closeImageModal}
+          onPrev={prevImage}
+          onNext={nextImage}
+        />
+      )}
     </div>
   );
 }
