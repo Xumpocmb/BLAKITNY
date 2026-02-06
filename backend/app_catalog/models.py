@@ -61,6 +61,7 @@ class Product(models.Model):
     category = models.ForeignKey(Category, on_delete=models.CASCADE, verbose_name='Категория')
     subcategory = models.ForeignKey(Subcategory, on_delete=models.CASCADE, verbose_name='Подкатегория')
     name = models.CharField(max_length=200, verbose_name='Название')
+    sku = models.CharField(max_length=20, verbose_name='Артикул', blank=True, null=True)
     description = models.TextField(blank=True, null=True, verbose_name='Описание')
     binding = models.TextField(blank=True, null=True, verbose_name='Переплет')
     picture_title = models.TextField(blank=True, null=True, verbose_name='Название рисунка')
