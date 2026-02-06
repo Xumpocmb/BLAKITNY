@@ -1,8 +1,10 @@
 from rest_framework.response import Response
 from rest_framework import generics
+from rest_framework.views import APIView
 from rest_framework.permissions import AllowAny
-from .models import Slider, CompanyDetails, SiteLogo, SocialNetwork, DeliveryPayment, AboutUs
-from .serializers import SliderSerializer, CompanyDetailsSerializer, SiteLogoSerializer, SocialNetworkSerializer, DeliveryPaymentSerializer, AboutUsSerializer
+from rest_framework import status
+from .models import Slider, CompanyDetails, SiteLogo, SocialNetwork, DeliveryPayment, AboutUs, Feedback
+from .serializers import SliderSerializer, CompanyDetailsSerializer, SiteLogoSerializer, SocialNetworkSerializer, DeliveryPaymentSerializer, AboutUsSerializer, FeedbackSerializer
 
 
 class SliderListView(generics.ListAPIView):
@@ -108,3 +110,20 @@ class AboutUsView(generics.RetrieveAPIView):
     def queryset(self):
         from .models import AboutUs
         return AboutUs.objects.all()
+
+
+class FeedbackCreateView(APIView):
+    """
+    API endpoint for creating feedback entries
+    """
+    permission_classes = [AllowAny]
+
+    def post(self, request):
+        serializer = FeedbackSerializer(data=request.data)
+        if serializer.is_valid():
+            serializer.save()
+            return Response(
+                {"message": "Ваше сообщение успешно отправлено!"}, 
+                status=status.HTTP_201_CREATED
+            )
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)

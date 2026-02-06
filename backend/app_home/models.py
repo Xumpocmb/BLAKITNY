@@ -1,6 +1,24 @@
 from django.db import models
 
 
+class Feedback(models.Model):
+    """
+    Модель формы обратной связи
+    """
+    name = models.CharField(max_length=100, verbose_name='Имя')
+    phone = models.CharField(max_length=20, verbose_name='Телефон')
+    message = models.TextField(max_length=1000, verbose_name='Сообщение')
+    created_at = models.DateTimeField(auto_now_add=True, verbose_name='Дата создания')
+
+    class Meta:
+        verbose_name = 'Обратная связь'
+        verbose_name_plural = 'Обратная связь'
+        ordering = ['-created_at']
+
+    def __str__(self):
+        return f'Обратная связь от {self.name}'
+
+
 class Slider(models.Model):
     image = models.ImageField(upload_to='slider_images/', verbose_name='Изображение')
     alt_text = models.CharField(max_length=200, verbose_name='Описание изображения (alt текст)')

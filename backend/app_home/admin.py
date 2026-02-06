@@ -1,5 +1,5 @@
 from django.contrib import admin
-from .models import Slider, CompanyDetails, SiteLogo, SocialNetwork, DeliveryPayment, AboutUs
+from .models import Slider, CompanyDetails, SiteLogo, SocialNetwork, DeliveryPayment, AboutUs, Feedback
 
 
 @admin.register(Slider)
@@ -76,3 +76,17 @@ class AboutUsAdmin(admin.ModelAdmin):
     def has_delete_permission(self, request, obj=None):
         # Запрещаем удаление единственной записи
         return False
+
+
+@admin.register(Feedback)
+class FeedbackAdmin(admin.ModelAdmin):
+    list_display = ("id", "name", "phone", "created_at", "short_message")
+    list_filter = ("created_at",)
+    search_fields = ("name", "phone", "message")
+    readonly_fields = ("created_at",)
+    list_display_links = ("id", "name")
+
+    def short_message(self, obj):
+        """Display a shortened version of the message in the admin list view"""
+        return obj.message[:50] + "..." if len(obj.message) > 50 else obj.message
+    short_message.short_description = "Сообщение"

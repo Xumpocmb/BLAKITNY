@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from .models import Slider, CompanyDetails, SiteLogo, SocialNetwork, DeliveryPayment, AboutUs
+from .models import Slider, CompanyDetails, SiteLogo, SocialNetwork, DeliveryPayment, AboutUs, Feedback
 
 
 class SliderSerializer(serializers.ModelSerializer):
@@ -66,3 +66,10 @@ class AboutUsSerializer(serializers.ModelSerializer):
     class Meta:
         model = AboutUs
         fields = ['id', 'title', 'content', 'created_at', 'updated_at']
+
+
+class FeedbackSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Feedback
+        fields = ['id', 'name', 'phone', 'message', 'created_at']
+        read_only_fields = ['id', 'created_at']
