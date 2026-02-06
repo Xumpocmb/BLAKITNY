@@ -1092,3 +1092,128 @@
     grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
   }
 }
+.aboutSection {
+  padding: 60px 0;
+  background: var(--surface-2);
+}
+
+.aboutContent {
+  margin-top: 24px;
+  line-height: 1.6;
+  color: var(--text);
+  max-width: 800px;
+  font-size: 16px;
+}
+
+.deliverySection {
+  padding: 60px 0;
+  background: var(--surface);
+}
+
+.deliveryGrid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 40px;
+  margin-top: 32px;
+}
+
+.deliveryCol {
+  display: grid;
+  gap: 16px;
+}
+
+.deliveryTitle {
+  font-size: 20px;
+  font-weight: 600;
+  color: var(--accent);
+}
+
+.deliveryContent {
+  line-height: 1.6;
+  color: var(--text);
+  font-size: 15px;
+}
+
+@media (max-width: 768px) {
+  .deliveryGrid {
+    grid-template-columns: 1fr;
+    gap: 32px;
+  }
+}
+
+.contactsSection {
+  padding: 60px 0;
+  background: var(--surface-2);
+}
+
+.contactsGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 24px;
+  margin-top: 32px;
+}
+
+.contactCard {
+  background: var(--surface);
+  border-radius: 16px;
+  padding: 24px;
+  border: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.contactLabel {
+  font-size: 14px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--muted);
+}
+
+.contactValue {
+  font-size: 20px;
+  font-weight: 600;
+  color: var(--text);
+  text-decoration: none;
+}
+
+.phoneLink:hover {
+  color: var(--accent);
+}
+
+.contactHint {
+  font-size: 13px;
+  color: var(--muted);
+}
+
+.socialLinks {
+  display: grid;
+  gap: 12px;
+}
+
+.socialLinkCard {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px;
+  border-radius: 12px;
+  border: 1px solid var(--border);
+  color: var(--text);
+  text-decoration: none;
+  transition: all 0.2s ease;
+}
+
+.socialLinkCard:hover {
+  background: color-mix(in srgb, var(--surface-2) 50%, transparent);
+  border-color: var(--accent);
+}
+
+.socialIcon {
+  width: 24px;
+  height: 24px;
+  object-fit: contain;
+}
+
+.socialName {
+  font-weight: 500;
+}
