@@ -1,5 +1,8 @@
 import "./App.css";
 import { useEffect, useMemo, useRef, useState } from "react";
+import { AboutSection } from "./components/AboutSection";
+import { DeliveryPaymentSection } from "./components/DeliveryPaymentSection";
+import { ContactsSection } from "./components/ContactsSection";
 
 const THEMES = {
   cream: {
@@ -558,6 +561,9 @@ function App() {
   const [sliderError, setSliderError] = useState(null);
   const [siteLogo, setSiteLogo] = useState({ type: "text", value: "BLAKITNY" });
   const [companyDetails, setCompanyDetails] = useState(null);
+  const [aboutUsData, setAboutUsData] = useState(null);
+  const [deliveryData, setDeliveryData] = useState(null);
+  const [socialNetworks, setSocialNetworks] = useState([]);
   const [authUser, setAuthUser] = useState(null);
   const [authModalOpen, setAuthModalOpen] = useState(false);
   const [authMode, setAuthMode] = useState("login");
@@ -676,6 +682,21 @@ function App() {
         setViewMode("catalog");
         return;
       }
+      if (hash === "#about") {
+        setActiveProductId(null);
+        setViewMode("about");
+        return;
+      }
+      if (hash === "#delivery") {
+        setActiveProductId(null);
+        setViewMode("delivery");
+        return;
+      }
+      if (hash === "#contacts") {
+        setActiveProductId(null);
+        setViewMode("contacts");
+        return;
+      }
       setActiveProductId(null);
       setViewMode("home");
     };
@@ -723,6 +744,48 @@ function App() {
         setCompanyDetails(null);
       } catch {
         setCompanyDetails(null);
+      }
+    }
+
+    async function loadAboutUs(signal) {
+      try {
+        const res = await fetch("/api/about-us/", { signal });
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        const data = await res.json();
+        if (data?.title || data?.content) {
+          setAboutUsData(data);
+        } else {
+          setAboutUsData(null);
+        }
+      } catch {
+        setAboutUsData(null);
+      }
+    }
+
+    async function loadDeliveryPayment(signal) {
+      try {
+        const res = await fetch("/api/delivery-payment/", { signal });
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        const data = await res.json();
+        if (data?.delivery_info || data?.payment_info) {
+          setDeliveryData(data);
+        } else {
+          setDeliveryData(null);
+        }
+      } catch {
+        setDeliveryData(null);
+      }
+    }
+
+    async function loadSocialNetworks(signal) {
+      try {
+        const res = await fetch("/api/social-networks/", { signal });
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        const data = await res.json();
+        const list = Array.isArray(data) ? data : [];
+        setSocialNetworks(list);
+      } catch {
+        setSocialNetworks([]);
       }
     }
 
@@ -855,6 +918,12 @@ function App() {
         await loadSiteLogo(controller.signal);
         await pause(1000, controller.signal);
         await loadCompanyDetails(controller.signal);
+        await pause(1000, controller.signal);
+        await loadAboutUs(controller.signal);
+        await pause(1000, controller.signal);
+        await loadDeliveryPayment(controller.signal);
+        await pause(1000, controller.signal);
+        await loadSocialNetworks(controller.signal);
         await pause(1000, controller.signal);
         await bootstrapAuth(controller.signal);
         await pause(1000, controller.signal);
@@ -1396,20 +1465,35 @@ function App() {
                 </div>
               </div>
             </section>
+          ) : viewMode === "about" ? (
+            <AboutSection data={aboutUsData} className="card" />
+          ) : viewMode === "delivery" ? (
+            <DeliveryPaymentSection data={deliveryData} className="card" />
+          ) : viewMode === "contacts" ? (
+            <ContactsSection
+              socialNetworks={socialNetworks}
+              phone={phone}
+              className="card"
+            />
           ) : (
-            <section className="card hero">
-              <h1 className="heroTitle">Уют в светлых оттенках</h1>
-              <p className="heroSubtitle">
-                Главная страница: слайдер подтягивается из бэкенда (app_home /
-                SliderListView). Остальные блоки добавим позже.
-              </p>
-              <HeroSlider
-                key={sliderKey}
-                slides={sliderSlides}
-                error={sliderError}
-              />
-              <div className="statusRow">API: /api/slider/</div>
-            </section>
+            <>
+              <section className="card hero">
+                <h1 className="heroTitle">Уют в светлых оттенках</h1>
+                <p className="heroSubtitle">
+                  Главная страница: слайдер подтягивается из бэкенда (app_home /
+                  SliderListView). Остальные блоки добавим позже.
+                </p>
+                <HeroSlider
+                  key={sliderKey}
+                  slides={sliderSlides}
+                  error={sliderError}
+                />
+                <div className="statusRow">API: /api/slider/</div>
+              </section>
+              <AboutSection data={aboutUsData} />
+              <DeliveryPaymentSection data={deliveryData} />
+              <ContactsSection socialNetworks={socialNetworks} phone={phone} />
+            </>
           )}
         </div>
       </main>
