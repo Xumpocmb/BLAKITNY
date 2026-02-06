@@ -19,11 +19,18 @@
   --shadow: 0 18px 40px rgba(31, 35, 40, 0.08);
 }
 
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
 a {
   font-weight: 500;
   color: var(--text);
   text-decoration: inherit;
 }
+
 a:hover {
   color: var(--accent);
 }
@@ -50,10 +57,12 @@ button {
   cursor: pointer;
   transition: transform 0.12s ease, border-color 0.25s ease, box-shadow 0.25s ease;
 }
+
 button:hover {
   border-color: rgba(196, 151, 111, 0.6);
   box-shadow: 0 10px 25px rgba(31, 35, 40, 0.08);
 }
+
 button:focus,
 button:focus-visible {
   outline: 3px solid rgba(196, 151, 111, 0.4);
