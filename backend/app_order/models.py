@@ -1,5 +1,5 @@
 from django.db import models
-from django.contrib.auth.models import User
+from django.conf import settings
 from app_home.models import DeliveryOption
 from app_catalog.models import ProductVariant
 
@@ -17,7 +17,7 @@ class Order(models.Model):
         ('cancelled', 'Отменен'),
     ]
 
-    user = models.ForeignKey(User, on_delete=models.CASCADE, verbose_name='Пользователь', null=True, blank=True)
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, verbose_name='Пользователь', null=True, blank=True)
     first_name = models.CharField(max_length=100, verbose_name='Имя')
     last_name = models.CharField(max_length=100, verbose_name='Фамилия')
     email = models.EmailField(verbose_name='Email')

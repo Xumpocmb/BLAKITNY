@@ -141,6 +141,7 @@ REST_FRAMEWORK = {
     ],
 }
 
+
 # JWT Configuration
 from datetime import timedelta
 
