@@ -45,10 +45,10 @@ class SocialNetworkAdmin(admin.ModelAdmin):
 
 @admin.register(DeliveryOption)
 class DeliveryOptionAdmin(admin.ModelAdmin):
-    list_display = ("id", "name", "price", "estimated_days", "is_active")
+    list_display = ("id", "name", "is_active")
     list_editable = ("is_active",)
-    list_filter = ("is_active", "estimated_days")
-    search_fields = ("name", "description")
+    list_filter = ("is_active",)
+    search_fields = ("name",)
     list_display_links = ("id", "name")
 
 

@@ -6,9 +6,6 @@ class DeliveryOption(models.Model):
     Модель вариантов доставки
     """
     name = models.CharField(max_length=200, verbose_name='Название способа доставки')
-    description = models.TextField(verbose_name='Описание способа доставки', blank=True)
-    price = models.DecimalField(max_digits=10, decimal_places=2, verbose_name='Стоимость доставки')
-    estimated_days = models.PositiveIntegerField(verbose_name='Расчетное время доставки (в днях)', default=1)
     is_active = models.BooleanField(default=True, verbose_name='Активен')
 
     class Meta:
@@ -102,7 +99,6 @@ class SocialNetwork(models.Model):
 
 class DeliveryPayment(models.Model):
     delivery_info = models.TextField(verbose_name='Информация о доставке')
-    payment_info = models.TextField(verbose_name='Информация об оплате')
     created_at = models.DateTimeField(auto_now_add=True, verbose_name='Дата создания')
     updated_at = models.DateTimeField(auto_now=True, verbose_name='Дата обновления')
 
@@ -111,7 +107,7 @@ class DeliveryPayment(models.Model):
         verbose_name_plural = 'Доставка и оплата'
 
     def __str__(self):
-        return "Информация о доставке и оплате"
+        return "Информация о доставке"
 
     @classmethod
     def load(cls):

@@ -8,7 +8,7 @@ class OrderItemInline(admin.TabularInline):
     Встроенный интерфейс для редактирования элементов заказа
     """
     model = OrderItem
-    extra = 1
+    extra = 0
     readonly_fields = ('total_price',)
     
     def get_formset(self, request, obj=None, **kwargs):
@@ -35,7 +35,7 @@ class OrderAdmin(admin.ModelAdmin):
     list_filter = ("status", "created_at", "delivery_option", "user")
     search_fields = ("first_name", "last_name", "email", "phone", "address", "user__username", "id")
     list_editable = ("status",)
-    readonly_fields = ("created_at", "updated_at")
+    readonly_fields = ("created_at", "updated_at", "total_amount")
     list_display_links = ("id", "first_name", "last_name")
     
     # Добавляем фильтрацию по дате
@@ -67,6 +67,12 @@ class OrderAdmin(admin.ModelAdmin):
             return f"{items_count} товар(ов): {items_names}"
         return "Нет товаров"
     order_summary.short_description = "Содержимое заказа"
+
+    def get_readonly_fields(self, request, obj=None):
+        # Сделать поля только для чтения при редактировании (но не при создании)
+        if obj:  # Редактирование существующего объекта
+            return self.readonly_fields + ('user', 'first_name', 'last_name', 'email', 'phone', 'address', 'delivery_option')
+        return self.readonly_fields
 
 
 @admin.register(Order)
