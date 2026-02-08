@@ -860,18 +860,88 @@ function CheckoutPage({ isAuthenticated, userEmail, onBack, onOrderCreated }) {
   );
 }
 
-function ProfilePage({ isAuthenticated, userEmail }) {
+function ProfilePage({
+  isAuthenticated,
+  userEmail,
+  onOpenOrder,
+  onAccountDeleted,
+  onEmailUpdated,
+}) {
   const [orders, setOrders] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState("");
+  const [ordersLoading, setOrdersLoading] = useState(true);
+  const [ordersError, setOrdersError] = useState("");
+  const [profile, setProfile] = useState(null);
+  const [profileLoading, setProfileLoading] = useState(true);
+  const [profileError, setProfileError] = useState("");
+  const [profileForm, setProfileForm] = useState({
+    firstName: "",
+    lastName: "",
+  });
+  const [emailForm, setEmailForm] = useState({ newEmail: "" });
+  const [passwordForm, setPasswordForm] = useState({
+    oldPassword: "",
+    newPassword: "",
+    confirmNewPassword: "",
+  });
+  const [avatarFile, setAvatarFile] = useState(null);
+  const [profileNotice, setProfileNotice] = useState("");
+  const [emailNotice, setEmailNotice] = useState("");
+  const [passwordNotice, setPasswordNotice] = useState("");
+  const [avatarNotice, setAvatarNotice] = useState("");
+  const [deleteNotice, setDeleteNotice] = useState("");
+  const [profileSaving, setProfileSaving] = useState(false);
+  const [emailSaving, setEmailSaving] = useState(false);
+  const [passwordSaving, setPasswordSaving] = useState(false);
+  const [avatarSaving, setAvatarSaving] = useState(false);
+  const [deleteSaving, setDeleteSaving] = useState(false);
   const accessToken = isAuthenticated ? readAccessToken() : null;
   const authError =
     isAuthenticated && !accessToken ? "Требуется авторизация" : "";
 
   useEffect(() => {
-    if (!isAuthenticated) return;
-    if (!accessToken) return;
+    if (!isAuthenticated || !accessToken) {
+      setProfileLoading(false);
+      setProfile(null);
+      return;
+    }
     let active = true;
+    setProfileLoading(true);
+    setProfileError("");
+    fetch("/api/users/profile/", {
+      headers: { Authorization: `Bearer ${accessToken}` },
+    })
+      .then((res) => res.json())
+      .then((data) => {
+        if (!active) return;
+        setProfile(data);
+        setProfileForm({
+          firstName: data?.first_name || "",
+          lastName: data?.last_name || "",
+        });
+        setEmailForm({ newEmail: data?.email || "" });
+      })
+      .catch(() => {
+        if (!active) return;
+        setProfileError("Не удалось загрузить профиль");
+      })
+      .finally(() => {
+        if (!active) return;
+        setProfileLoading(false);
+      });
+    return () => {
+      active = false;
+    };
+  }, [isAuthenticated, accessToken]);
+
+  useEffect(() => {
+    if (!isAuthenticated || !accessToken) {
+      setOrdersLoading(false);
+      setOrders([]);
+      return;
+    }
+    let active = true;
+    setOrdersLoading(true);
+    setOrdersError("");
     fetch("/api/orders/", {
       headers: { Authorization: `Bearer ${accessToken}` },
     })
@@ -887,11 +957,11 @@ function ProfilePage({ isAuthenticated, userEmail }) {
       })
       .catch(() => {
         if (!active) return;
-        setError("Не удалось загрузить заказы");
+        setOrdersError("Не удалось загрузить заказы");
       })
       .finally(() => {
         if (!active) return;
-        setLoading(false);
+        setOrdersLoading(false);
       });
     return () => {
       active = false;
@@ -910,12 +980,178 @@ function ProfilePage({ isAuthenticated, userEmail }) {
     return map[status] || status || "—";
   };
 
+  const handleProfileChange = (field) => (event) => {
+    setProfileForm((prev) => ({ ...prev, [field]: event.target.value }));
+  };
+
+  const handleEmailChange = (event) => {
+    setEmailForm({ newEmail: event.target.value });
+  };
+
+  const handlePasswordChange = (field) => (event) => {
+    setPasswordForm((prev) => ({ ...prev, [field]: event.target.value }));
+  };
+
+  const submitProfile = async (event) => {
+    event.preventDefault();
+    if (!accessToken || profileSaving) return;
+    setProfileSaving(true);
+    setProfileNotice("");
+    try {
+      const res = await fetch("/api/users/profile/", {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${accessToken}`,
+        },
+        body: JSON.stringify({
+          first_name: profileForm.firstName,
+          last_name: profileForm.lastName,
+        }),
+      });
+      const data = await res.json().catch(() => null);
+      if (!res.ok) {
+        setProfileNotice(normalizeError(data, "Не удалось обновить профиль"));
+        return;
+      }
+      setProfile(data);
+      setProfileNotice("Профиль обновлен");
+    } catch {
+      setProfileNotice("Не удалось обновить профиль");
+    } finally {
+      setProfileSaving(false);
+    }
+  };
+
+  const submitEmail = async (event) => {
+    event.preventDefault();
+    if (!accessToken || emailSaving) return;
+    setEmailSaving(true);
+    setEmailNotice("");
+    try {
+      const res = await fetch("/api/users/change-email/", {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${accessToken}`,
+        },
+        body: JSON.stringify({ new_email: emailForm.newEmail }),
+      });
+      const data = await res.json().catch(() => null);
+      if (!res.ok) {
+        setEmailNotice(normalizeError(data, "Не удалось изменить email"));
+        return;
+      }
+      setProfile((prev) =>
+        prev ? { ...prev, email: emailForm.newEmail } : prev,
+      );
+      onEmailUpdated?.(emailForm.newEmail);
+      setEmailNotice("Email обновлен");
+    } catch {
+      setEmailNotice("Не удалось изменить email");
+    } finally {
+      setEmailSaving(false);
+    }
+  };
+
+  const submitPassword = async (event) => {
+    event.preventDefault();
+    if (!accessToken || passwordSaving) return;
+    setPasswordSaving(true);
+    setPasswordNotice("");
+    try {
+      const res = await fetch("/api/users/change-password/", {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${accessToken}`,
+        },
+        body: JSON.stringify({
+          old_password: passwordForm.oldPassword,
+          new_password: passwordForm.newPassword,
+          confirm_new_password: passwordForm.confirmNewPassword,
+        }),
+      });
+      const data = await res.json().catch(() => null);
+      if (!res.ok) {
+        setPasswordNotice(normalizeError(data, "Не удалось изменить пароль"));
+        return;
+      }
+      setPasswordForm({
+        oldPassword: "",
+        newPassword: "",
+        confirmNewPassword: "",
+      });
+      setPasswordNotice("Пароль обновлен");
+    } catch {
+      setPasswordNotice("Не удалось изменить пароль");
+    } finally {
+      setPasswordSaving(false);
+    }
+  };
+
+  const submitAvatar = async (event) => {
+    event.preventDefault();
+    if (!accessToken || avatarSaving || !avatarFile) {
+      if (!avatarFile) setAvatarNotice("Выберите файл");
+      return;
+    }
+    setAvatarSaving(true);
+    setAvatarNotice("");
+    try {
+      const body = new FormData();
+      body.append("avatar", avatarFile);
+      const res = await fetch("/api/users/update-avatar/", {
+        method: "PUT",
+        headers: { Authorization: `Bearer ${accessToken}` },
+        body,
+      });
+      const data = await res.json().catch(() => null);
+      if (!res.ok) {
+        setAvatarNotice(normalizeError(data, "Не удалось обновить аватар"));
+        return;
+      }
+      setAvatarFile(null);
+      const profileRes = await fetch("/api/users/profile/", {
+        headers: { Authorization: `Bearer ${accessToken}` },
+      });
+      const profileData = await profileRes.json().catch(() => null);
+      if (profileRes.ok) {
+        setProfile(profileData);
+      }
+      setAvatarNotice("Аватар обновлен");
+    } catch {
+      setAvatarNotice("Не удалось обновить аватар");
+    } finally {
+      setAvatarSaving(false);
+    }
+  };
+
+  const submitDelete = async () => {
+    if (!accessToken || deleteSaving) return;
+    setDeleteSaving(true);
+    setDeleteNotice("");
+    try {
+      const res = await fetch("/api/users/delete-account/", {
+        method: "DELETE",
+        headers: { Authorization: `Bearer ${accessToken}` },
+      });
+      if (!res.ok) {
+        const data = await res.json().catch(() => null);
+        setDeleteNotice(normalizeError(data, "Не удалось удалить профиль"));
+        return;
+      }
+      onAccountDeleted?.();
+    } catch {
+      setDeleteNotice("Не удалось удалить профиль");
+    } finally {
+      setDeleteSaving(false);
+    }
+  };
+
   return (
     <section style={{ display: "grid", gap: 18 }}>
       <div style={{ fontSize: 24, fontWeight: 700 }}>Профиль</div>
-      {userEmail ? (
-        <div style={{ color: "var(--muted)" }}>{userEmail}</div>
-      ) : null}
       {!isAuthenticated ? (
         <div
           style={{
@@ -938,7 +1174,510 @@ function ProfilePage({ isAuthenticated, userEmail }) {
         >
           {authError}
         </div>
-      ) : error ? (
+      ) : (
+        <div
+          style={{
+            display: "grid",
+            gap: 16,
+            gridTemplateColumns: "minmax(0, 1fr) minmax(0, 1fr)",
+          }}
+        >
+          <div style={{ display: "grid", gap: 16 }}>
+            <div
+              style={{
+                display: "grid",
+                gap: 12,
+                padding: 16,
+                borderRadius: 16,
+                border: "1px solid var(--border)",
+                background: "var(--surface)",
+              }}
+            >
+              <div style={{ fontWeight: 600, fontSize: 18 }}>
+                Информация о пользователе
+              </div>
+              {profileLoading ? (
+                <div style={{ color: "var(--muted)" }}>Загрузка профиля...</div>
+              ) : profileError ? (
+                <div style={{ color: "var(--muted)" }}>{profileError}</div>
+              ) : (
+                <>
+                  <div
+                    style={{ display: "flex", gap: 16, alignItems: "center" }}
+                  >
+                    <div
+                      style={{
+                        width: 72,
+                        height: 72,
+                        borderRadius: 18,
+                        border: "1px solid var(--border)",
+                        overflow: "hidden",
+                        background: "var(--surface-2)",
+                        display: "grid",
+                        placeItems: "center",
+                      }}
+                    >
+                      {profile?.avatar ? (
+                        <img
+                          src={toProxiedUrl(profile.avatar)}
+                          alt="Аватар"
+                          style={{
+                            width: "100%",
+                            height: "100%",
+                            objectFit: "cover",
+                          }}
+                        />
+                      ) : (
+                        <span style={{ fontSize: 12, color: "var(--muted)" }}>
+                          Нет фото
+                        </span>
+                      )}
+                    </div>
+                    <div style={{ display: "grid", gap: 4 }}>
+                      <div style={{ fontWeight: 700 }}>
+                        {profile?.first_name || profile?.last_name
+                          ? `${profile?.first_name || ""} ${profile?.last_name || ""}`.trim()
+                          : "Имя не указано"}
+                      </div>
+                      <div style={{ color: "var(--muted)", fontSize: 13 }}>
+                        {profile?.email || userEmail || "Email не указан"}
+                      </div>
+                      <div style={{ color: "var(--muted)", fontSize: 12 }}>
+                        {profile?.date_joined
+                          ? `Регистрация: ${new Date(profile.date_joined).toLocaleDateString("ru-RU")}`
+                          : ""}
+                      </div>
+                    </div>
+                  </div>
+                  <form
+                    style={{ display: "grid", gap: 10 }}
+                    onSubmit={submitProfile}
+                  >
+                    <label style={{ display: "grid", gap: 6 }}>
+                      <span style={{ fontSize: 13, color: "var(--muted)" }}>
+                        Имя
+                      </span>
+                      <input
+                        value={profileForm.firstName}
+                        onChange={handleProfileChange("firstName")}
+                        className="authInput"
+                      />
+                    </label>
+                    <label style={{ display: "grid", gap: 6 }}>
+                      <span style={{ fontSize: 13, color: "var(--muted)" }}>
+                        Фамилия
+                      </span>
+                      <input
+                        value={profileForm.lastName}
+                        onChange={handleProfileChange("lastName")}
+                        className="authInput"
+                      />
+                    </label>
+                    <button
+                      type="submit"
+                      disabled={profileSaving}
+                      style={{
+                        borderRadius: 999,
+                        padding: "10px 16px",
+                        background: "var(--accent)",
+                        color: "#fff",
+                      }}
+                    >
+                      {profileSaving ? "Сохраняем..." : "Сохранить данные"}
+                    </button>
+                    {profileNotice ? (
+                      <div style={{ color: "var(--muted)", fontSize: 12 }}>
+                        {profileNotice}
+                      </div>
+                    ) : null}
+                  </form>
+                </>
+              )}
+            </div>
+
+            <div
+              style={{
+                display: "grid",
+                gap: 12,
+                padding: 16,
+                borderRadius: 16,
+                border: "1px solid var(--border)",
+                background: "var(--surface)",
+              }}
+            >
+              <div style={{ fontWeight: 600, fontSize: 18 }}>Смена email</div>
+              <form style={{ display: "grid", gap: 10 }} onSubmit={submitEmail}>
+                <label style={{ display: "grid", gap: 6 }}>
+                  <span style={{ fontSize: 13, color: "var(--muted)" }}>
+                    Новый email
+                  </span>
+                  <input
+                    type="email"
+                    value={emailForm.newEmail}
+                    onChange={handleEmailChange}
+                    className="authInput"
+                  />
+                </label>
+                <button
+                  type="submit"
+                  disabled={emailSaving}
+                  style={{
+                    borderRadius: 999,
+                    padding: "10px 16px",
+                    background: "var(--accent)",
+                    color: "#fff",
+                  }}
+                >
+                  {emailSaving ? "Сохраняем..." : "Изменить email"}
+                </button>
+                {emailNotice ? (
+                  <div style={{ color: "var(--muted)", fontSize: 12 }}>
+                    {emailNotice}
+                  </div>
+                ) : null}
+              </form>
+            </div>
+
+            <div
+              style={{
+                display: "grid",
+                gap: 12,
+                padding: 16,
+                borderRadius: 16,
+                border: "1px solid var(--border)",
+                background: "var(--surface)",
+              }}
+            >
+              <div style={{ fontWeight: 600, fontSize: 18 }}>Смена пароля</div>
+              <form
+                style={{ display: "grid", gap: 10 }}
+                onSubmit={submitPassword}
+              >
+                <label style={{ display: "grid", gap: 6 }}>
+                  <span style={{ fontSize: 13, color: "var(--muted)" }}>
+                    Текущий пароль
+                  </span>
+                  <input
+                    type="password"
+                    value={passwordForm.oldPassword}
+                    onChange={handlePasswordChange("oldPassword")}
+                    className="authInput"
+                  />
+                </label>
+                <label style={{ display: "grid", gap: 6 }}>
+                  <span style={{ fontSize: 13, color: "var(--muted)" }}>
+                    Новый пароль
+                  </span>
+                  <input
+                    type="password"
+                    value={passwordForm.newPassword}
+                    onChange={handlePasswordChange("newPassword")}
+                    className="authInput"
+                  />
+                </label>
+                <label style={{ display: "grid", gap: 6 }}>
+                  <span style={{ fontSize: 13, color: "var(--muted)" }}>
+                    Повторите пароль
+                  </span>
+                  <input
+                    type="password"
+                    value={passwordForm.confirmNewPassword}
+                    onChange={handlePasswordChange("confirmNewPassword")}
+                    className="authInput"
+                  />
+                </label>
+                <button
+                  type="submit"
+                  disabled={passwordSaving}
+                  style={{
+                    borderRadius: 999,
+                    padding: "10px 16px",
+                    background: "var(--accent)",
+                    color: "#fff",
+                  }}
+                >
+                  {passwordSaving ? "Сохраняем..." : "Изменить пароль"}
+                </button>
+                {passwordNotice ? (
+                  <div style={{ color: "var(--muted)", fontSize: 12 }}>
+                    {passwordNotice}
+                  </div>
+                ) : null}
+              </form>
+            </div>
+
+            <div
+              style={{
+                display: "grid",
+                gap: 12,
+                padding: 16,
+                borderRadius: 16,
+                border: "1px solid var(--border)",
+                background: "var(--surface)",
+              }}
+            >
+              <div style={{ fontWeight: 600, fontSize: 18 }}>Аватар</div>
+              <form
+                style={{ display: "grid", gap: 10 }}
+                onSubmit={submitAvatar}
+              >
+                <input
+                  type="file"
+                  accept="image/*"
+                  onChange={(e) => setAvatarFile(e.target.files?.[0] || null)}
+                />
+                <button
+                  type="submit"
+                  disabled={avatarSaving}
+                  style={{
+                    borderRadius: 999,
+                    padding: "10px 16px",
+                    background: "var(--accent)",
+                    color: "#fff",
+                  }}
+                >
+                  {avatarSaving ? "Сохраняем..." : "Обновить аватар"}
+                </button>
+                {avatarNotice ? (
+                  <div style={{ color: "var(--muted)", fontSize: 12 }}>
+                    {avatarNotice}
+                  </div>
+                ) : null}
+              </form>
+            </div>
+
+            <div
+              style={{
+                display: "grid",
+                gap: 12,
+                padding: 16,
+                borderRadius: 16,
+                border: "1px solid rgba(255, 107, 107, 0.35)",
+                background: "rgba(255, 107, 107, 0.08)",
+              }}
+            >
+              <div style={{ fontWeight: 600, fontSize: 18 }}>
+                Удаление профиля
+              </div>
+              <button
+                type="button"
+                onClick={submitDelete}
+                disabled={deleteSaving}
+                style={{
+                  borderRadius: 999,
+                  padding: "10px 16px",
+                  background: "rgba(255, 107, 107, 0.85)",
+                  color: "#fff",
+                }}
+              >
+                {deleteSaving ? "Удаляем..." : "Удалить профиль"}
+              </button>
+              {deleteNotice ? (
+                <div style={{ color: "var(--muted)", fontSize: 12 }}>
+                  {deleteNotice}
+                </div>
+              ) : null}
+            </div>
+          </div>
+
+          <div style={{ display: "grid", gap: 16 }}>
+            <div
+              style={{
+                display: "grid",
+                gap: 12,
+                padding: 16,
+                borderRadius: 16,
+                border: "1px solid var(--border)",
+                background: "var(--surface)",
+              }}
+            >
+              <div style={{ fontWeight: 600, fontSize: 18 }}>Мои заказы</div>
+              {ordersError ? (
+                <div style={{ color: "var(--muted)" }}>{ordersError}</div>
+              ) : ordersLoading ? (
+                <div style={{ color: "var(--muted)" }}>Загрузка заказов...</div>
+              ) : orders.length === 0 ? (
+                <div style={{ color: "var(--muted)" }}>Заказов пока нет</div>
+              ) : (
+                <div style={{ display: "grid", gap: 12 }}>
+                  {orders.map((order) => (
+                    <div
+                      key={order.id}
+                      style={{
+                        display: "grid",
+                        gap: 10,
+                        padding: 14,
+                        borderRadius: 14,
+                        border: "1px solid var(--border)",
+                        background: "var(--surface-2)",
+                      }}
+                    >
+                      <div
+                        style={{
+                          display: "flex",
+                          justifyContent: "space-between",
+                          gap: 12,
+                          flexWrap: "wrap",
+                        }}
+                      >
+                        <div style={{ fontWeight: 700 }}>
+                          Заказ #{order.id ?? "—"}
+                        </div>
+                        <div style={{ color: "var(--muted)" }}>
+                          {statusLabel(order.status)}
+                        </div>
+                      </div>
+                      <div style={{ fontSize: 13, color: "var(--muted)" }}>
+                        Дата:{" "}
+                        {order.created_at
+                          ? new Date(order.created_at).toLocaleString("ru-RU")
+                          : "—"}
+                      </div>
+                      <div style={{ fontSize: 13, color: "var(--muted)" }}>
+                        Итого:{" "}
+                        {new Intl.NumberFormat("ru-RU").format(
+                          Number(order.total_amount ?? 0),
+                        )}{" "}
+                        ₽
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => onOpenOrder?.(order.id)}
+                        style={{
+                          borderRadius: 999,
+                          padding: "8px 14px",
+                          background: "var(--accent)",
+                          color: "#fff",
+                          justifySelf: "start",
+                        }}
+                      >
+                        Открыть заказ
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+    </section>
+  );
+}
+
+function OrderDetailsPage({ isAuthenticated, orderId, onBack }) {
+  const [order, setOrder] = useState(null);
+  const [error, setError] = useState({ message: "", orderId: null });
+  const [cancelNotice, setCancelNotice] = useState({
+    message: "",
+    orderId: null,
+  });
+  const [cancelSaving, setCancelSaving] = useState(false);
+  const accessToken = isAuthenticated ? readAccessToken() : null;
+  const shouldFetch = Boolean(isAuthenticated && accessToken && orderId);
+  const authError =
+    isAuthenticated && !accessToken ? "Требуется авторизация" : "";
+
+  useEffect(() => {
+    if (!shouldFetch) return;
+    let active = true;
+    fetch(`/api/orders/${orderId}/`, {
+      headers: { Authorization: `Bearer ${accessToken}` },
+    })
+      .then((res) => res.json())
+      .then((data) => {
+        if (!active) return;
+        setOrder(data);
+        setError({ message: "", orderId });
+      })
+      .catch(() => {
+        if (!active) return;
+        setError({ message: "Не удалось загрузить заказ", orderId });
+      });
+    return () => {
+      active = false;
+    };
+  }, [shouldFetch, accessToken, orderId]);
+
+  const statusLabel = (status) => {
+    const map = {
+      pending: "В ожидании",
+      confirmed: "Подтвержден",
+      processing: "В обработке",
+      shipped: "Отправлен",
+      delivered: "Доставлен",
+      cancelled: "Отменен",
+    };
+    return map[status] || status || "—";
+  };
+
+  const errorMessage = error.orderId === orderId ? error.message : "";
+  const cancelMessage =
+    cancelNotice.orderId === orderId ? cancelNotice.message : "";
+  const loading =
+    shouldFetch && (!order || order?.id !== orderId) && !errorMessage;
+  const canCancel = order && order.status !== "cancelled";
+
+  useEffect(() => {
+    setCancelNotice({ message: "", orderId });
+  }, [orderId]);
+
+  const handleCancelOrder = async () => {
+    if (!orderId || !accessToken) return;
+    setCancelSaving(true);
+    setCancelNotice({ message: "", orderId });
+    try {
+      const response = await fetch(`/api/orders/${orderId}/cancel/`, {
+        method: "POST",
+        headers: { Authorization: `Bearer ${accessToken}` },
+      });
+      const data = await response.json();
+      if (!response.ok) {
+        setCancelNotice({
+          message: data?.error || "Не удалось отменить заказ",
+          orderId,
+        });
+        return;
+      }
+      setOrder((prev) =>
+        prev
+          ? {
+              ...prev,
+              status: "cancelled",
+              updated_at: new Date().toISOString(),
+            }
+          : prev,
+      );
+      setCancelNotice({ message: data?.message || "Заказ отменен", orderId });
+    } catch {
+      setCancelNotice({ message: "Не удалось отменить заказ", orderId });
+    } finally {
+      setCancelSaving(false);
+    }
+  };
+
+  return (
+    <section style={{ display: "grid", gap: 18 }}>
+      <div style={{ display: "flex", gap: 12, alignItems: "center" }}>
+        <button type="button" onClick={onBack}>
+          Назад в профиль
+        </button>
+        <div style={{ fontSize: 24, fontWeight: 700 }}>
+          Заказ {orderId ? `#${orderId}` : ""}
+        </div>
+      </div>
+      {!isAuthenticated ? (
+        <div
+          style={{
+            padding: 12,
+            borderRadius: 12,
+            background: "rgba(196, 151, 111, 0.12)",
+            border: "1px solid rgba(196, 151, 111, 0.35)",
+          }}
+        >
+          Для просмотра заказа войдите в аккаунт
+        </div>
+      ) : authError ? (
         <div
           style={{
             padding: 12,
@@ -947,87 +1686,116 @@ function ProfilePage({ isAuthenticated, userEmail }) {
             border: "1px solid rgba(255, 107, 107, 0.35)",
           }}
         >
-          {error}
+          {authError}
+        </div>
+      ) : errorMessage ? (
+        <div
+          style={{
+            padding: 12,
+            borderRadius: 12,
+            background: "rgba(255, 107, 107, 0.12)",
+            border: "1px solid rgba(255, 107, 107, 0.35)",
+          }}
+        >
+          {errorMessage}
         </div>
       ) : loading ? (
-        <div style={{ color: "var(--muted)" }}>Загрузка заказов...</div>
-      ) : orders.length === 0 ? (
-        <div style={{ color: "var(--muted)" }}>Заказов пока нет</div>
+        <div style={{ color: "var(--muted)" }}>Загрузка заказа...</div>
+      ) : !order ? (
+        <div style={{ color: "var(--muted)" }}>Заказ не найден</div>
       ) : (
         <div style={{ display: "grid", gap: 12 }}>
-          {orders.map((order) => (
+          <div
+            style={{
+              display: "grid",
+              gap: 10,
+              padding: 16,
+              borderRadius: 16,
+              border: "1px solid var(--border)",
+              background: "var(--surface)",
+            }}
+          >
             <div
-              key={order.id}
               style={{
-                display: "grid",
-                gap: 10,
-                padding: 16,
-                borderRadius: 16,
-                border: "1px solid var(--border)",
-                background: "var(--surface)",
+                display: "flex",
+                justifyContent: "space-between",
+                gap: 12,
+                flexWrap: "wrap",
               }}
             >
-              <div
-                style={{
-                  display: "flex",
-                  justifyContent: "space-between",
-                  gap: 12,
-                  flexWrap: "wrap",
-                }}
-              >
-                <div style={{ fontWeight: 700 }}>Заказ #{order.id ?? "—"}</div>
-                <div style={{ color: "var(--muted)" }}>
-                  {statusLabel(order.status)}
-                </div>
+              <div style={{ fontWeight: 700 }}>
+                Статус: {statusLabel(order.status)}
               </div>
-              <div style={{ fontSize: 13, color: "var(--muted)" }}>
-                Дата:{" "}
+              <div style={{ color: "var(--muted)" }}>
                 {order.created_at
                   ? new Date(order.created_at).toLocaleString("ru-RU")
-                  : "—"}
-              </div>
-              <div style={{ fontSize: 13, color: "var(--muted)" }}>
-                Доставка: {order.delivery_option ?? "—"}
-              </div>
-              <div style={{ display: "grid", gap: 6 }}>
-                {(order.order_items || []).map((item) => (
-                  <div
-                    key={item.id}
-                    style={{
-                      display: "flex",
-                      justifyContent: "space-between",
-                      gap: 8,
-                      fontSize: 13,
-                    }}
-                  >
-                    <div>
-                      Вариант #{item?.product_variant?.id ?? "—"} ·{" "}
-                      {item?.product_variant?.product
-                        ? `Товар #${item.product_variant.product}`
-                        : "Товар"}
-                      {item?.product_variant?.size?.name
-                        ? ` · ${item.product_variant.size.name}`
-                        : ""}
-                      {item?.quantity ? ` · ${item.quantity} шт` : ""}
-                    </div>
-                    <div style={{ fontWeight: 600 }}>
-                      {new Intl.NumberFormat("ru-RU").format(
-                        Number(item?.total_price ?? 0),
-                      )}{" "}
-                      ₽
-                    </div>
-                  </div>
-                ))}
-              </div>
-              <div style={{ fontWeight: 700 }}>
-                Итого:{" "}
-                {new Intl.NumberFormat("ru-RU").format(
-                  Number(order.total_amount ?? 0),
-                )}{" "}
-                ₽
+                  : ""}
               </div>
             </div>
-          ))}
+            <div style={{ fontSize: 13, color: "var(--muted)" }}>
+              Доставка: {order.delivery_option ?? "—"}
+            </div>
+            <div style={{ display: "grid", gap: 8 }}>
+              <button
+                type="button"
+                onClick={handleCancelOrder}
+                disabled={!canCancel || cancelSaving}
+                style={{
+                  borderRadius: 999,
+                  padding: "8px 14px",
+                  background: canCancel
+                    ? "rgba(255, 107, 107, 0.85)"
+                    : "var(--border)",
+                  color: canCancel ? "#fff" : "var(--muted)",
+                  justifySelf: "start",
+                }}
+              >
+                {cancelSaving ? "Отменяем..." : "Отменить заказ"}
+              </button>
+              {cancelMessage ? (
+                <div style={{ color: "var(--muted)", fontSize: 12 }}>
+                  {cancelMessage}
+                </div>
+              ) : null}
+            </div>
+            <div style={{ display: "grid", gap: 6 }}>
+              {(order.order_items || []).map((item) => (
+                <div
+                  key={item.id}
+                  style={{
+                    display: "flex",
+                    justifyContent: "space-between",
+                    gap: 8,
+                    fontSize: 13,
+                  }}
+                >
+                  <div>
+                    Вариант #{item?.product_variant?.id ?? "—"} ·{" "}
+                    {item?.product_variant?.product
+                      ? `Товар #${item.product_variant.product}`
+                      : "Товар"}
+                    {item?.product_variant?.size?.name
+                      ? ` · ${item.product_variant.size.name}`
+                      : ""}
+                    {item?.quantity ? ` · ${item.quantity} шт` : ""}
+                  </div>
+                  <div style={{ fontWeight: 600 }}>
+                    {new Intl.NumberFormat("ru-RU").format(
+                      Number(item?.total_price ?? 0),
+                    )}{" "}
+                    ₽
+                  </div>
+                </div>
+              ))}
+            </div>
+            <div style={{ fontWeight: 700 }}>
+              Итого:{" "}
+              {new Intl.NumberFormat("ru-RU").format(
+                Number(order.total_amount ?? 0),
+              )}{" "}
+              ₽
+            </div>
+          </div>
         </div>
       )}
     </section>
@@ -1063,6 +1831,7 @@ function App() {
   const [selectedVariantId, setSelectedVariantId] = useState(null);
   const [addQuantity, setAddQuantity] = useState(1);
   const [viewMode, setViewMode] = useState("home");
+  const [selectedOrderId, setSelectedOrderId] = useState(null);
   const [modalOpen, setModalOpen] = useState(false);
   const sliderKey = useMemo(
     () => sliderSlides.map((s) => s.id).join("-"),
@@ -1230,7 +1999,22 @@ function App() {
         }
         setActiveProductId(null);
         setViewMode("profile");
+        setSelectedOrderId(null);
         return;
+      }
+      if (hash.startsWith("#order-")) {
+        if (!isAuthenticated) {
+          redirectToAuth();
+          return;
+        }
+        const match = hash.match(/order-(\d+)/);
+        const nextId = match ? Number(match[1]) : null;
+        if (Number.isFinite(nextId)) {
+          setActiveProductId(null);
+          setSelectedOrderId(nextId);
+          setViewMode("order");
+          return;
+        }
       }
       setActiveProductId(null);
       setViewMode("home");
@@ -1585,7 +2369,18 @@ function App() {
       return;
     }
     setViewMode("profile");
+    setSelectedOrderId(null);
     window.location.hash = "profile";
+  };
+
+  const openOrderDetail = (id) => {
+    if (!isAuthenticated) {
+      redirectToAuth();
+      return;
+    }
+    setSelectedOrderId(id);
+    setViewMode("order");
+    window.location.hash = `order-${id}`;
   };
 
   const openProduct = (id) => {
@@ -1625,6 +2420,18 @@ function App() {
     window.location.hash = "";
     setViewMode("home");
     window.scrollTo({ top: 0, behavior: "smooth" });
+  };
+
+  const handleAccountDeleted = () => {
+    setAuthUser(null);
+    clearTokens();
+    setSelectedOrderId(null);
+    setViewMode("home");
+    window.location.hash = "";
+  };
+
+  const handleEmailUpdated = (email) => {
+    setAuthUser((prev) => (prev ? { ...prev, email } : prev));
   };
 
   if (!pageReady) {
@@ -2195,6 +3002,15 @@ function App() {
             <ProfilePage
               isAuthenticated={isAuthenticated}
               userEmail={authUser?.email}
+              onOpenOrder={openOrderDetail}
+              onAccountDeleted={handleAccountDeleted}
+              onEmailUpdated={handleEmailUpdated}
+            />
+          ) : viewMode === "order" ? (
+            <OrderDetailsPage
+              isAuthenticated={isAuthenticated}
+              orderId={selectedOrderId}
+              onBack={openProfile}
             />
           ) : (
             <>
