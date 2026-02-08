@@ -12,8 +12,8 @@ from .serializers import (
     ChangeEmailSerializer, UpdateAvatarSerializer, ArchiveUserSerializer
 )
 from .logic import (
-    change_password, change_email, archive_user, 
-    restore_user, update_avatar as update_avatar_logic, get_user_profile
+    change_password, change_email, archive_user,
+    update_avatar as update_avatar_logic, get_user_profile
 )
 
 User = get_user_model()
@@ -203,45 +203,27 @@ def update_avatar(request):
 def archive_account(request):
     """
     Архивирует аккаунт текущего пользователя.
-    
+
     Args:
         request: HTTP-запрос
-        
+
     Returns:
         Response: JSON-ответ с результатом операции
     """
-    success = archive_user(request.user)
-    
-    if success:
-        return Response({'message': 'Аккаунт успешно архивирован'}, status=status.HTTP_204_NO_CONTENT)
-    else:
+    # Архивируем пользователя (делаем неактивным)
+    user = request.user
+    if not user.is_active:
         return Response(
-            {'error': 'Не удалось архивировать аккаунт'}, 
+            {'error': 'Пользователь уже архивирован'},
             status=status.HTTP_400_BAD_REQUEST
         )
+    
+    user.is_active = False
+    user.save(update_fields=['is_active'])
+    
+    return Response({'message': 'Аккаунт успешно архивирован'}, status=status.HTTP_204_NO_CONTENT)
 
 
-@api_view(['POST'])
-@permission_classes([IsAuthenticated])
-def restore_account(request):
-    """
-    Восстанавливает аккаунт текущего пользователя из архива.
-    
-    Args:
-        request: HTTP-запрос
-        
-    Returns:
-        Response: JSON-ответ с результатом операции
-    """
-    success = restore_user(request.user)
-    
-    if success:
-        return Response({'message': 'Аккаунт успешно восстановлен'}, status=status.HTTP_200_OK)
-    else:
-        return Response(
-            {'error': 'Не удалось восстановить аккаунт'}, 
-            status=status.HTTP_400_BAD_REQUEST
-        )
 
 
 @api_view(['DELETE'])

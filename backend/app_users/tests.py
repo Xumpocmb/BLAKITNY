@@ -1,11 +1,11 @@
 from django.test import TestCase, Client
-from django.contrib.auth import get_user_model
+from django.contrib.auth import get_user_model, authenticate
 from django.urls import reverse
 from django.core.files.uploadedfile import SimpleUploadedFile
 from rest_framework.test import APIClient
 from rest_framework_simplejwt.tokens import RefreshToken
 from .models import UserProfile
-from .logic import change_password, change_email, archive_user, restore_user, update_avatar
+from .logic import change_password, change_email, archive_user, update_avatar
 
 User = get_user_model()
 
@@ -195,22 +195,10 @@ class UserProfileTestCase(TestCase):
         response = self.client.delete(reverse('archive_account'))
         self.assertEqual(response.status_code, 204)
         
-        # Проверяем, что пользователь архивирован
-        self.profile.refresh_from_db()
-        self.assertTrue(self.profile.is_archived)
+        # Проверяем, что пользователь архивирован (неактивен)
+        self.user.refresh_from_db()
+        self.assertFalse(self.user.is_active)
 
-    def test_restore_account(self):
-        """Тест восстановления аккаунта из архива"""
-        # Сначала архивируем аккаунт
-        self.client.delete(reverse('archive_account'))
-        
-        # Затем восстанавливаем
-        response = self.client.post(reverse('restore_account'))
-        self.assertEqual(response.status_code, 200)
-        
-        # Проверяем, что пользователь восстановлен
-        self.profile.refresh_from_db()
-        self.assertFalse(self.profile.is_archived)
 
 
 class UserLogicTestCase(TestCase):
@@ -240,19 +228,9 @@ class UserLogicTestCase(TestCase):
         """Тест логики архивации пользователя"""
         success = archive_user(self.user)
         self.assertTrue(success)
-        self.profile.refresh_from_db()
-        self.assertTrue(self.profile.is_archived)
+        self.user.refresh_from_db()
+        self.assertFalse(self.user.is_active)
 
-    def test_restore_user_logic(self):
-        """Тест логики восстановления пользователя"""
-        # Сначала архивируем
-        archive_user(self.user)
-        
-        # Затем восстанавливаем
-        success = restore_user(self.user)
-        self.assertTrue(success)
-        self.profile.refresh_from_db()
-        self.assertFalse(self.profile.is_archived)
 
     def test_update_avatar_logic(self):
         """Тест логики обновления аватара"""
@@ -261,8 +239,9 @@ class UserLogicTestCase(TestCase):
             content=b'fake image content',
             content_type='image/jpeg'
         )
-        
+
         success = update_avatar(self.user, avatar_file)
         self.assertTrue(success)
         self.profile.refresh_from_db()
         self.assertIsNotNone(self.profile.avatar)
+

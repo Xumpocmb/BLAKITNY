@@ -71,7 +71,7 @@ def change_email(user, new_email):
 
 def archive_user(user):
     """
-    Архивирует профиль пользователя (на самом деле не удаляет, а помечает как архивный).
+    Архивирует пользователя (на самом деле не удаляет, а помечает как неактивного).
     
     Args:
         user: Объект пользователя
@@ -79,39 +79,14 @@ def archive_user(user):
     Returns:
         bool: True, если пользователь успешно архивирован, иначе False
     """
-    try:
-        profile = user.profile
-        if profile.is_archived:
-            return False  # Пользователь уже архивирован
-        
-        profile.archive()
-        return True
-    except UserProfile.DoesNotExist:
-        # Создаем профиль, если его нет, и затем архивируем
-        profile = UserProfile.objects.create(user=user)
-        profile.archive()
-        return True
+    if not user.is_active:
+        return False  # Пользователь уже архивирован (неактивен)
+    
+    user.is_active = False
+    user.save(update_fields=['is_active'])
+    return True
 
 
-def restore_user(user):
-    """
-    Восстанавливает профиль пользователя из архива.
-    
-    Args:
-        user: Объект пользователя
-    
-    Returns:
-        bool: True, если пользователь успешно восстановлен, иначе False
-    """
-    try:
-        profile = user.profile
-        if not profile.is_archived:
-            return False  # Пользователь не архивирован
-        
-        profile.restore()
-        return True
-    except UserProfile.DoesNotExist:
-        return False  # Профиль не существует
 
 
 def update_avatar(user, avatar_file):

@@ -61,13 +61,6 @@ class LoginSerializer(serializers.Serializer):
                 if not user.is_active:
                     raise serializers.ValidationError("User account is disabled.")
                 
-                # Проверяем, архивирован ли профиль пользователя
-                try:
-                    if hasattr(user, 'profile') and user.profile.is_archived:
-                        raise serializers.ValidationError("User account is archived.")
-                except UserProfile.DoesNotExist:
-                    pass  # Если профиля нет, пользователь не архивирован
-                
                 attrs['user'] = user
                 return attrs
             else:
