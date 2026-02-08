@@ -8,7 +8,7 @@
   -moz-osx-font-smoothing: grayscale;
   color-scheme: light;
 
-  --bg: #fbf7f0;
+  --bg: #95b9d3;
   --surface: #ffffff;
   --surface-2: #f6efe4;
   --text: #1f2328;
@@ -39,9 +39,7 @@ body {
   margin: 0;
   min-width: 320px;
   min-height: 100vh;
-  background: radial-gradient(1200px 600px at 10% 0%, rgba(196, 151, 111, 0.18), transparent 60%),
-    radial-gradient(900px 500px at 90% 10%, rgba(227, 198, 170, 0.22), transparent 55%),
-    var(--bg);
+  background: var(--bg);
   color: var(--text);
 }
 
