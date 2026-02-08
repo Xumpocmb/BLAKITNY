@@ -13,7 +13,7 @@ from .serializers import (
 )
 from .logic import (
     change_password, change_email, archive_user, 
-    restore_user, update_avatar, get_user_profile
+    restore_user, update_avatar as update_avatar_logic, get_user_profile
 )
 
 User = get_user_model()
@@ -82,7 +82,7 @@ def me_view(request):
     }, status=status.HTTP_200_OK)
 
 
-@api_view(['GET'])
+@api_view(['GET', 'PUT'])
 @permission_classes([IsAuthenticated])
 def get_profile(request):
     """
@@ -95,8 +95,19 @@ def get_profile(request):
         Response: JSON-ответ с данными профиля пользователя
     """
     profile, created = UserProfile.objects.get_or_create(user=request.user)
-    serializer = UserProfileSerializer(profile)
-    return Response(serializer.data)
+    if request.method == 'GET':
+        serializer = UserProfileSerializer(profile, context={'request': request})
+        return Response(serializer.data)
+    serializer = UserProfileSerializer(
+        profile,
+        data=request.data,
+        partial=True,
+        context={'request': request},
+    )
+    if serializer.is_valid():
+        serializer.save()
+        return Response(serializer.data, status=status.HTTP_200_OK)
+    return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
 @api_view(['PUT'])
@@ -176,7 +187,7 @@ def update_avatar(request):
         )
     
     avatar_file = request.FILES['avatar']
-    success = update_avatar(request.user, avatar_file)
+    success = update_avatar_logic(request.user, avatar_file)
     
     if success:
         return Response({'message': 'Аватар успешно обновлен'}, status=status.HTTP_200_OK)
@@ -231,3 +242,12 @@ def restore_account(request):
             {'error': 'Не удалось восстановить аккаунт'}, 
             status=status.HTTP_400_BAD_REQUEST
         )
+
+
+@api_view(['DELETE'])
+@permission_classes([IsAuthenticated])
+def delete_account(request):
+    user = request.user
+    UserProfile.objects.filter(user=user).delete()
+    user.delete()
+    return Response(status=status.HTTP_204_NO_CONTENT)
