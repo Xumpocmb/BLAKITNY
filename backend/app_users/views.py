@@ -50,7 +50,7 @@ def login_view(request):
     serializer = LoginSerializer(data=request.data)
     if serializer.is_valid():
         user = serializer.validated_data['user']
-        login(request, user)
+        # Не используем login(request, user) для чистой JWT-аутентификации
         tokens = get_tokens_for_user(user)
 
         return Response({
@@ -198,7 +198,7 @@ def update_avatar(request):
         )
 
 
-@api_view(['DELETE'])
+@api_view(['POST'])
 @permission_classes([IsAuthenticated])
 def archive_account(request):
     """
@@ -221,9 +221,7 @@ def archive_account(request):
     user.is_active = False
     user.save(update_fields=['is_active'])
     
-    return Response({'message': 'Аккаунт успешно архивирован'}, status=status.HTTP_204_NO_CONTENT)
-
-
+    return Response({'message': 'Аккаунт успешно архивирован'}, status=status.HTTP_200_OK)
 
 
 @api_view(['DELETE'])

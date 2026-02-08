@@ -192,8 +192,8 @@ class UserProfileTestCase(TestCase):
 
     def test_archive_account(self):
         """Тест архивации аккаунта"""
-        response = self.client.delete(reverse('archive_account'))
-        self.assertEqual(response.status_code, 204)
+        response = self.client.post(reverse('archive_account'))
+        self.assertEqual(response.status_code, 200)
         
         # Проверяем, что пользователь архивирован (неактивен)
         self.user.refresh_from_db()
