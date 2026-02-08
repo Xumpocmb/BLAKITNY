@@ -175,3 +175,4 @@ dist-ssr
 *.sw?
 
 frontend/node_modules/
+update_and_merge.sh
