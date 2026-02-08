@@ -3,6 +3,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { AboutSection } from "./components/AboutSection";
 import { DeliveryPaymentSection } from "./components/DeliveryPaymentSection";
 import { ContactsSection } from "./components/ContactsSection";
+import { CategoriesSection } from "./components/CategoriesSection";
 
 const THEMES = {
   cream: {
@@ -564,6 +565,7 @@ function App() {
   const [aboutUsData, setAboutUsData] = useState(null);
   const [deliveryData, setDeliveryData] = useState(null);
   const [socialNetworks, setSocialNetworks] = useState([]);
+  const [categories, setCategories] = useState([]);
   const [authUser, setAuthUser] = useState(null);
   const [authModalOpen, setAuthModalOpen] = useState(false);
   const [authMode, setAuthMode] = useState("login");
@@ -789,6 +791,18 @@ function App() {
       }
     }
 
+    async function loadCategories(signal) {
+      try {
+        const res = await fetch("/api/catalog/categories/", { signal });
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        const data = await res.json();
+        const list = Array.isArray(data) ? data : [];
+        setCategories(list);
+      } catch {
+        setCategories([]);
+      }
+    }
+
     async function loadProfile(accessToken, refreshToken, signal) {
       try {
         const res = await fetch("/api/users/me/", {
@@ -924,6 +938,8 @@ function App() {
         await loadDeliveryPayment(controller.signal);
         await pause(1000, controller.signal);
         await loadSocialNetworks(controller.signal);
+        await pause(1000, controller.signal);
+        await loadCategories(controller.signal);
         await pause(1000, controller.signal);
         await bootstrapAuth(controller.signal);
         await pause(1000, controller.signal);
@@ -1490,6 +1506,7 @@ function App() {
                 />
                 <div className="statusRow">API: /api/slider/</div>
               </section>
+              <CategoriesSection categories={categories} />
               <AboutSection data={aboutUsData} />
               <DeliveryPaymentSection data={deliveryData} />
               <ContactsSection socialNetworks={socialNetworks} phone={phone} />
