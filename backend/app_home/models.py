@@ -1,6 +1,25 @@
 from django.db import models
 
 
+class DeliveryOption(models.Model):
+    """
+    Модель вариантов доставки
+    """
+    name = models.CharField(max_length=200, verbose_name='Название способа доставки')
+    description = models.TextField(verbose_name='Описание способа доставки', blank=True)
+    price = models.DecimalField(max_digits=10, decimal_places=2, verbose_name='Стоимость доставки')
+    estimated_days = models.PositiveIntegerField(verbose_name='Расчетное время доставки (в днях)', default=1)
+    is_active = models.BooleanField(default=True, verbose_name='Активен')
+
+    class Meta:
+        verbose_name = 'Вариант доставки'
+        verbose_name_plural = 'Варианты доставки'
+        ordering = ['name']
+
+    def __str__(self):
+        return self.name
+
+
 class Feedback(models.Model):
     """
     Модель формы обратной связи

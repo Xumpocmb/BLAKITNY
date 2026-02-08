@@ -1,5 +1,5 @@
 from django.contrib import admin
-from .models import Slider, CompanyDetails, SiteLogo, SocialNetwork, DeliveryPayment, AboutUs, Feedback
+from .models import Slider, CompanyDetails, SiteLogo, SocialNetwork, DeliveryPayment, AboutUs, Feedback, DeliveryOption
 
 
 @admin.register(Slider)
@@ -41,6 +41,14 @@ class SocialNetworkAdmin(admin.ModelAdmin):
     list_editable = ("is_active",)
     list_filter = ("is_active",)
     search_fields = ("name", "link")
+
+
+@admin.register(DeliveryOption)
+class DeliveryOptionAdmin(admin.ModelAdmin):
+    list_display = ("id", "name", "price", "estimated_days", "is_active")
+    list_editable = ("is_active",)
+    list_filter = ("is_active", "estimated_days")
+    search_fields = ("name", "description")
     list_display_links = ("id", "name")
 
 
