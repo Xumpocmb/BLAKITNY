@@ -1,9 +1,12 @@
 import "./App.css";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { AboutSection } from "./components/AboutSection";
 import { DeliveryPaymentSection } from "./components/DeliveryPaymentSection";
 import { ContactsSection } from "./components/ContactsSection";
 import { CategoriesSection } from "./components/CategoriesSection";
+import { CartBadge } from "./components/CartBadge";
+import { CartPage } from "./components/CartPage";
+import { useCart } from "./cart/CartContext";
 
 const THEMES = {
   cream: {
@@ -555,6 +558,7 @@ function ImageModal({ images, activeIndex, onClose, onPrev, onNext }) {
 }
 
 function App() {
+  const { addToCart, reloadFromServer } = useCart();
   const [themeName] = useState("cream");
   const phone = "+79990000000";
   const [pageReady, setPageReady] = useState(false);
@@ -579,6 +583,8 @@ function App() {
   const [sortMode, setSortMode] = useState("newest");
   const [activeProductId, setActiveProductId] = useState(null);
   const [activeImageIndex, setActiveImageIndex] = useState(0);
+  const [selectedVariantId, setSelectedVariantId] = useState(null);
+  const [addQuantity, setAddQuantity] = useState(1);
   const [viewMode, setViewMode] = useState("home");
   const [modalOpen, setModalOpen] = useState(false);
   const sliderKey = useMemo(
@@ -663,9 +669,32 @@ function App() {
   }, [activeProductId]);
 
   useEffect(() => {
+    if (!activeProduct) {
+      setSelectedVariantId(null);
+      setAddQuantity(1);
+      return;
+    }
+    const variants = Array.isArray(activeProduct?.variants)
+      ? activeProduct.variants.filter((v) => v?.is_active !== false)
+      : [];
+    setSelectedVariantId(variants[0]?.id ?? null);
+    setAddQuantity(1);
+  }, [activeProduct]);
+
+  useEffect(() => {
     if (activeImageIndex < activeProductImages.length) return;
     setActiveImageIndex(0);
   }, [activeImageIndex, activeProductImages.length]);
+
+  const isAuthenticated = !!authUser;
+
+  const redirectToAuth = useCallback(() => {
+    setAuthMode("login");
+    setAuthModalOpen(true);
+    setActiveProductId(null);
+    setViewMode("home");
+    window.location.hash = "";
+  }, []);
 
   useEffect(() => {
     const updateFromHash = () => {
@@ -699,6 +728,15 @@ function App() {
         setViewMode("contacts");
         return;
       }
+      if (hash === "#cart") {
+        if (!isAuthenticated) {
+          redirectToAuth();
+          return;
+        }
+        setActiveProductId(null);
+        setViewMode("cart");
+        return;
+      }
       setActiveProductId(null);
       setViewMode("home");
     };
@@ -706,7 +744,7 @@ function App() {
     updateFromHash();
     window.addEventListener("hashchange", updateFromHash);
     return () => window.removeEventListener("hashchange", updateFromHash);
-  }, []);
+  }, [isAuthenticated, redirectToAuth]);
 
   useEffect(() => {
     const controller = new AbortController();
@@ -959,8 +997,6 @@ function App() {
     return () => controller.abort();
   }, []);
 
-  const isAuthenticated = !!authUser;
-
   const openAuth = (mode) => {
     setAuthMode(mode);
     setAuthModalOpen(true);
@@ -983,6 +1019,7 @@ function App() {
     const nextTokens = { access: tokens.access, refresh: tokens.refresh };
     storeTokens(nextTokens);
     setAuthUser({ id: data?.user_id, email: data?.email || email });
+    await reloadFromServer();
   };
 
   const handleRegister = async ({ email, password, passwordConfirm }) => {
@@ -1006,11 +1043,14 @@ function App() {
     const nextTokens = { access: tokens.access, refresh: tokens.refresh };
     storeTokens(nextTokens);
     setAuthUser({ id: data?.user_id, email: data?.email || email });
+    await reloadFromServer();
   };
 
   const handleLogout = () => {
     setAuthUser(null);
     clearTokens();
+    setViewMode("home");
+    window.location.hash = "";
   };
 
   const handleResetFilters = () => {
@@ -1024,6 +1064,15 @@ function App() {
   const openCatalog = () => {
     setViewMode("catalog");
     window.location.hash = "catalog";
+  };
+
+  const openCart = () => {
+    if (!isAuthenticated) {
+      redirectToAuth();
+      return;
+    }
+    setViewMode("cart");
+    window.location.hash = "cart";
   };
 
   const openProduct = (id) => {
@@ -1132,6 +1181,7 @@ function App() {
                 />
               </svg>
             </a>
+            <CartBadge onClick={openCart} />
             <ProfileMenu
               isAuthenticated={isAuthenticated}
               userEmail={authUser?.email}
@@ -1256,14 +1306,136 @@ function App() {
                           {activeProduct.variants
                             .filter((variant) => variant?.is_active !== false)
                             .map((variant) => (
-                              <div className="variantChip" key={variant.id}>
+                              <button
+                                type="button"
+                                className="variantChip"
+                                key={variant.id}
+                                onClick={() => setSelectedVariantId(variant.id)}
+                                style={{
+                                  borderColor:
+                                    variant.id === selectedVariantId
+                                      ? "rgba(196, 151, 111, 0.8)"
+                                      : "color-mix(in srgb, var(--border) 70%, transparent)",
+                                  boxShadow:
+                                    variant.id === selectedVariantId
+                                      ? "0 0 0 2px rgba(196, 151, 111, 0.2)"
+                                      : "none",
+                                }}
+                              >
                                 <span>{variant?.size?.name || "Размер"}</span>
                                 <span>
                                   {formatPrice(Number(variant.price))} ₽
                                 </span>
-                              </div>
+                              </button>
                             ))}
                         </div>
+                      </div>
+                    ) : null}
+                    {activeProduct.variants &&
+                    activeProduct.variants.length > 0 ? (
+                      <div
+                        style={{
+                          display: "flex",
+                          gap: 12,
+                          flexWrap: "wrap",
+                          alignItems: "center",
+                        }}
+                      >
+                        <div style={{ display: "flex", gap: 8 }}>
+                          <button
+                            type="button"
+                            onClick={() =>
+                              setAddQuantity((prev) => Math.max(1, prev - 1))
+                            }
+                          >
+                            −
+                          </button>
+                          <input
+                            type="number"
+                            min="1"
+                            max="99"
+                            value={addQuantity}
+                            onChange={(e) => {
+                              const next = Number(e.target.value);
+                              setAddQuantity(
+                                Number.isFinite(next)
+                                  ? Math.min(99, Math.max(1, next))
+                                  : 1,
+                              );
+                            }}
+                            style={{
+                              width: 70,
+                              textAlign: "center",
+                              borderRadius: 10,
+                              border: "1px solid var(--border)",
+                              padding: "8px 10px",
+                              background: "var(--surface)",
+                            }}
+                          />
+                          <button
+                            type="button"
+                            onClick={() =>
+                              setAddQuantity((prev) => Math.min(99, prev + 1))
+                            }
+                          >
+                            +
+                          </button>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            if (!isAuthenticated) {
+                              redirectToAuth();
+                              return;
+                            }
+                            const variants = Array.isArray(
+                              activeProduct?.variants,
+                            )
+                              ? activeProduct.variants
+                              : [];
+                            const selected =
+                              variants.find(
+                                (variant) => variant?.id === selectedVariantId,
+                              ) || variants[0];
+                            if (!selected) return;
+                            const images = Array.isArray(activeProduct?.images)
+                              ? activeProduct.images
+                              : [];
+                            const activeImage = images.find(
+                              (img) => img?.is_active !== false,
+                            );
+                            addToCart(
+                              {
+                                productId: activeProduct.id,
+                                productName: activeProduct.name,
+                                productImage: toProxiedUrl(activeImage?.image),
+                                productVariantId: selected.id,
+                                sizeName: selected?.size?.name || "",
+                                price: Number(selected?.price ?? 0),
+                                attributes: {
+                                  binding: activeProduct.binding ?? null,
+                                  pictureTitle:
+                                    activeProduct.picture_title ?? null,
+                                  fabric:
+                                    activeProduct.fabric_type?.name ?? null,
+                                  category:
+                                    activeProduct.category?.name ?? null,
+                                  subcategory:
+                                    activeProduct.subcategory?.name ?? null,
+                                },
+                              },
+                              addQuantity,
+                            );
+                          }}
+                          style={{
+                            borderRadius: 999,
+                            padding: "10px 18px",
+                            background: "var(--accent)",
+                            color: "#fff",
+                          }}
+                        >
+                          Добавить в корзину
+                        </button>
                       </div>
                     ) : null}
                   </div>
@@ -1491,6 +1663,8 @@ function App() {
               phone={phone}
               className="card"
             />
+          ) : viewMode === "cart" ? (
+            <CartPage isAuthenticated={isAuthenticated} />
           ) : (
             <>
               <section className="card hero">
