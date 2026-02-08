@@ -130,6 +130,14 @@ function readStoredTokens() {
   }
 }
 
+function readAccessToken() {
+  try {
+    return localStorage.getItem(ACCESS_TOKEN_KEY);
+  } catch {
+    return null;
+  }
+}
+
 function storeTokens(tokens) {
   try {
     if (tokens?.access) localStorage.setItem(ACCESS_TOKEN_KEY, tokens.access);
@@ -557,6 +565,475 @@ function ImageModal({ images, activeIndex, onClose, onPrev, onNext }) {
   );
 }
 
+function CheckoutPage({ isAuthenticated, userEmail, onBack, onOrderCreated }) {
+  const { state, getTotalPrice, reloadFromServer } = useCart();
+  const total = useMemo(() => getTotalPrice(), [getTotalPrice]);
+  const [deliveryOptions, setDeliveryOptions] = useState([]);
+  const [loadingOptions, setLoadingOptions] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState("");
+  const [form, setForm] = useState({
+    firstName: "",
+    lastName: "",
+    email: userEmail || "",
+    phone: "",
+    address: "",
+    deliveryOptionId: "",
+  });
+
+  useEffect(() => {
+    if (!userEmail) return;
+    setForm((prev) => ({ ...prev, email: prev.email || userEmail }));
+  }, [userEmail]);
+
+  useEffect(() => {
+    let active = true;
+    setLoadingOptions(true);
+    fetch("/api/delivery-options/")
+      .then((res) => res.json())
+      .then((data) => {
+        if (!active) return;
+        const list = Array.isArray(data?.delivery_options)
+          ? data.delivery_options
+          : [];
+        setDeliveryOptions(list);
+        if (list.length > 0) {
+          setForm((prev) =>
+            prev.deliveryOptionId
+              ? prev
+              : { ...prev, deliveryOptionId: String(list[0].id) },
+          );
+        }
+      })
+      .catch(() => {
+        if (!active) return;
+        setDeliveryOptions([]);
+      })
+      .finally(() => {
+        if (!active) return;
+        setLoadingOptions(false);
+      });
+    return () => {
+      active = false;
+    };
+  }, []);
+
+  const handleChange = (field) => (event) => {
+    setForm((prev) => ({ ...prev, [field]: event.target.value }));
+  };
+
+  const handleSubmit = async (event) => {
+    event.preventDefault();
+    if (submitting) return;
+    if (!isAuthenticated) {
+      setError("Требуется авторизация");
+      return;
+    }
+    if (state.items.length === 0) {
+      setError("Корзина пуста");
+      return;
+    }
+    if (!form.deliveryOptionId) {
+      setError("Выберите способ доставки");
+      return;
+    }
+    const token = readAccessToken();
+    if (!token) {
+      setError("Требуется авторизация");
+      return;
+    }
+    setSubmitting(true);
+    setError("");
+    try {
+      const res = await fetch("/api/orders/create/", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          delivery_option_id: Number(form.deliveryOptionId),
+          first_name: form.firstName,
+          last_name: form.lastName,
+          email: form.email,
+          phone: form.phone,
+          address: form.address,
+        }),
+      });
+      const data = await res.json().catch(() => null);
+      if (!res.ok) {
+        setError(normalizeError(data, "Не удалось оформить заказ"));
+        return;
+      }
+      await reloadFromServer();
+      onOrderCreated?.(data);
+    } catch {
+      setError("Не удалось оформить заказ");
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  return (
+    <section style={{ display: "grid", gap: 18 }}>
+      <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+        <button type="button" onClick={onBack}>
+          Назад в корзину
+        </button>
+        <div style={{ fontSize: 24, fontWeight: 700 }}>Оформление заказа</div>
+      </div>
+      {error ? (
+        <div
+          style={{
+            padding: 12,
+            borderRadius: 12,
+            background: "rgba(255, 107, 107, 0.12)",
+            border: "1px solid rgba(255, 107, 107, 0.35)",
+          }}
+        >
+          {error}
+        </div>
+      ) : null}
+      <div
+        style={{
+          display: "grid",
+          gap: 16,
+          gridTemplateColumns: "minmax(0, 1.2fr) minmax(0, 1fr)",
+        }}
+      >
+        <form
+          onSubmit={handleSubmit}
+          style={{
+            display: "grid",
+            gap: 12,
+            padding: 16,
+            borderRadius: 16,
+            border: "1px solid var(--border)",
+            background: "var(--surface)",
+          }}
+        >
+          <div style={{ fontWeight: 600, fontSize: 18 }}>Данные получателя</div>
+          <label style={{ display: "grid", gap: 6 }}>
+            <span style={{ fontSize: 13, color: "var(--muted)" }}>Имя</span>
+            <input
+              required
+              value={form.firstName}
+              onChange={handleChange("firstName")}
+              className="authInput"
+            />
+          </label>
+          <label style={{ display: "grid", gap: 6 }}>
+            <span style={{ fontSize: 13, color: "var(--muted)" }}>Фамилия</span>
+            <input
+              required
+              value={form.lastName}
+              onChange={handleChange("lastName")}
+              className="authInput"
+            />
+          </label>
+          <label style={{ display: "grid", gap: 6 }}>
+            <span style={{ fontSize: 13, color: "var(--muted)" }}>Email</span>
+            <input
+              type="email"
+              required
+              value={form.email}
+              onChange={handleChange("email")}
+              className="authInput"
+            />
+          </label>
+          <label style={{ display: "grid", gap: 6 }}>
+            <span style={{ fontSize: 13, color: "var(--muted)" }}>Телефон</span>
+            <input
+              required
+              value={form.phone}
+              onChange={handleChange("phone")}
+              className="authInput"
+            />
+          </label>
+          <label style={{ display: "grid", gap: 6 }}>
+            <span style={{ fontSize: 13, color: "var(--muted)" }}>
+              Адрес доставки
+            </span>
+            <textarea
+              required
+              value={form.address}
+              onChange={handleChange("address")}
+              className="authInput"
+              rows={3}
+              style={{ resize: "vertical" }}
+            />
+          </label>
+          <label style={{ display: "grid", gap: 6 }}>
+            <span style={{ fontSize: 13, color: "var(--muted)" }}>
+              Вариант доставки
+            </span>
+            <select
+              required
+              value={form.deliveryOptionId}
+              onChange={handleChange("deliveryOptionId")}
+              className="authInput"
+              disabled={loadingOptions || deliveryOptions.length === 0}
+            >
+              {deliveryOptions.length === 0 ? (
+                <option value="">
+                  {loadingOptions
+                    ? "Загрузка вариантов доставки..."
+                    : "Нет доступных вариантов"}
+                </option>
+              ) : null}
+              {deliveryOptions.map((option) => (
+                <option key={option.id} value={String(option.id)}>
+                  {option.name}
+                </option>
+              ))}
+            </select>
+          </label>
+          <button
+            type="submit"
+            disabled={submitting}
+            style={{
+              borderRadius: 999,
+              padding: "10px 16px",
+              background: "var(--accent)",
+              color: "#fff",
+            }}
+          >
+            {submitting ? "Оформляем..." : "Подтвердить заказ"}
+          </button>
+        </form>
+        <div
+          style={{
+            display: "grid",
+            gap: 12,
+            padding: 16,
+            borderRadius: 16,
+            border: "1px solid var(--border)",
+            background: "var(--surface)",
+            alignContent: "start",
+          }}
+        >
+          <div style={{ fontWeight: 600, fontSize: 18 }}>Состав заказа</div>
+          {state.items.length === 0 ? (
+            <div style={{ color: "var(--muted)", fontSize: 13 }}>
+              В корзине нет товаров
+            </div>
+          ) : (
+            state.items.map((item) => (
+              <div
+                key={item.productVariantId}
+                style={{
+                  display: "grid",
+                  gridTemplateColumns: "1fr auto",
+                  gap: 8,
+                  paddingBottom: 8,
+                  borderBottom: "1px dashed var(--border)",
+                }}
+              >
+                <div style={{ fontSize: 14 }}>
+                  <div style={{ fontWeight: 600 }}>{item.productName}</div>
+                  <div style={{ color: "var(--muted)", fontSize: 12 }}>
+                    Размер: {item.sizeName || "—"} · Кол-во: {item.quantity}
+                  </div>
+                </div>
+                <div style={{ fontWeight: 600 }}>
+                  {new Intl.NumberFormat("ru-RU").format(
+                    item.price * item.quantity,
+                  )}{" "}
+                  ₽
+                </div>
+              </div>
+            ))
+          )}
+          <div
+            style={{
+              display: "flex",
+              justifyContent: "space-between",
+              fontWeight: 700,
+            }}
+          >
+            <span>Итого</span>
+            <span>{new Intl.NumberFormat("ru-RU").format(total)} ₽</span>
+          </div>
+        </div>
+      </div>
+    </section>
+  );
+}
+
+function ProfilePage({ isAuthenticated, userEmail }) {
+  const [orders, setOrders] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+  const accessToken = isAuthenticated ? readAccessToken() : null;
+  const authError =
+    isAuthenticated && !accessToken ? "Требуется авторизация" : "";
+
+  useEffect(() => {
+    if (!isAuthenticated) return;
+    if (!accessToken) return;
+    let active = true;
+    fetch("/api/orders/", {
+      headers: { Authorization: `Bearer ${accessToken}` },
+    })
+      .then((res) => res.json())
+      .then((data) => {
+        if (!active) return;
+        const list = Array.isArray(data)
+          ? data
+          : Array.isArray(data?.results)
+            ? data.results
+            : [];
+        setOrders(list);
+      })
+      .catch(() => {
+        if (!active) return;
+        setError("Не удалось загрузить заказы");
+      })
+      .finally(() => {
+        if (!active) return;
+        setLoading(false);
+      });
+    return () => {
+      active = false;
+    };
+  }, [isAuthenticated, accessToken]);
+
+  const statusLabel = (status) => {
+    const map = {
+      pending: "В ожидании",
+      confirmed: "Подтвержден",
+      processing: "В обработке",
+      shipped: "Отправлен",
+      delivered: "Доставлен",
+      cancelled: "Отменен",
+    };
+    return map[status] || status || "—";
+  };
+
+  return (
+    <section style={{ display: "grid", gap: 18 }}>
+      <div style={{ fontSize: 24, fontWeight: 700 }}>Профиль</div>
+      {userEmail ? (
+        <div style={{ color: "var(--muted)" }}>{userEmail}</div>
+      ) : null}
+      {!isAuthenticated ? (
+        <div
+          style={{
+            padding: 12,
+            borderRadius: 12,
+            background: "rgba(196, 151, 111, 0.12)",
+            border: "1px solid rgba(196, 151, 111, 0.35)",
+          }}
+        >
+          Для просмотра профиля войдите в аккаунт
+        </div>
+      ) : authError ? (
+        <div
+          style={{
+            padding: 12,
+            borderRadius: 12,
+            background: "rgba(255, 107, 107, 0.12)",
+            border: "1px solid rgba(255, 107, 107, 0.35)",
+          }}
+        >
+          {authError}
+        </div>
+      ) : error ? (
+        <div
+          style={{
+            padding: 12,
+            borderRadius: 12,
+            background: "rgba(255, 107, 107, 0.12)",
+            border: "1px solid rgba(255, 107, 107, 0.35)",
+          }}
+        >
+          {error}
+        </div>
+      ) : loading ? (
+        <div style={{ color: "var(--muted)" }}>Загрузка заказов...</div>
+      ) : orders.length === 0 ? (
+        <div style={{ color: "var(--muted)" }}>Заказов пока нет</div>
+      ) : (
+        <div style={{ display: "grid", gap: 12 }}>
+          {orders.map((order) => (
+            <div
+              key={order.id}
+              style={{
+                display: "grid",
+                gap: 10,
+                padding: 16,
+                borderRadius: 16,
+                border: "1px solid var(--border)",
+                background: "var(--surface)",
+              }}
+            >
+              <div
+                style={{
+                  display: "flex",
+                  justifyContent: "space-between",
+                  gap: 12,
+                  flexWrap: "wrap",
+                }}
+              >
+                <div style={{ fontWeight: 700 }}>Заказ #{order.id ?? "—"}</div>
+                <div style={{ color: "var(--muted)" }}>
+                  {statusLabel(order.status)}
+                </div>
+              </div>
+              <div style={{ fontSize: 13, color: "var(--muted)" }}>
+                Дата:{" "}
+                {order.created_at
+                  ? new Date(order.created_at).toLocaleString("ru-RU")
+                  : "—"}
+              </div>
+              <div style={{ fontSize: 13, color: "var(--muted)" }}>
+                Доставка: {order.delivery_option ?? "—"}
+              </div>
+              <div style={{ display: "grid", gap: 6 }}>
+                {(order.order_items || []).map((item) => (
+                  <div
+                    key={item.id}
+                    style={{
+                      display: "flex",
+                      justifyContent: "space-between",
+                      gap: 8,
+                      fontSize: 13,
+                    }}
+                  >
+                    <div>
+                      Вариант #{item?.product_variant?.id ?? "—"} ·{" "}
+                      {item?.product_variant?.product
+                        ? `Товар #${item.product_variant.product}`
+                        : "Товар"}
+                      {item?.product_variant?.size?.name
+                        ? ` · ${item.product_variant.size.name}`
+                        : ""}
+                      {item?.quantity ? ` · ${item.quantity} шт` : ""}
+                    </div>
+                    <div style={{ fontWeight: 600 }}>
+                      {new Intl.NumberFormat("ru-RU").format(
+                        Number(item?.total_price ?? 0),
+                      )}{" "}
+                      ₽
+                    </div>
+                  </div>
+                ))}
+              </div>
+              <div style={{ fontWeight: 700 }}>
+                Итого:{" "}
+                {new Intl.NumberFormat("ru-RU").format(
+                  Number(order.total_amount ?? 0),
+                )}{" "}
+                ₽
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+    </section>
+  );
+}
+
 function App() {
   const { addToCart, reloadFromServer } = useCart();
   const [themeName] = useState("cream");
@@ -735,6 +1212,24 @@ function App() {
         }
         setActiveProductId(null);
         setViewMode("cart");
+        return;
+      }
+      if (hash === "#checkout") {
+        if (!isAuthenticated) {
+          redirectToAuth();
+          return;
+        }
+        setActiveProductId(null);
+        setViewMode("checkout");
+        return;
+      }
+      if (hash === "#profile") {
+        if (!isAuthenticated) {
+          redirectToAuth();
+          return;
+        }
+        setActiveProductId(null);
+        setViewMode("profile");
         return;
       }
       setActiveProductId(null);
@@ -1075,6 +1570,24 @@ function App() {
     window.location.hash = "cart";
   };
 
+  const openCheckout = () => {
+    if (!isAuthenticated) {
+      redirectToAuth();
+      return;
+    }
+    setViewMode("checkout");
+    window.location.hash = "checkout";
+  };
+
+  const openProfile = () => {
+    if (!isAuthenticated) {
+      redirectToAuth();
+      return;
+    }
+    setViewMode("profile");
+    window.location.hash = "profile";
+  };
+
   const openProduct = (id) => {
     setActiveProductId(id);
     setViewMode("product");
@@ -1187,7 +1700,7 @@ function App() {
               userEmail={authUser?.email}
               onLogin={() => openAuth("login")}
               onRegister={() => openAuth("register")}
-              onProfile={() => setAuthModalOpen(false)}
+              onProfile={openProfile}
               onLogout={handleLogout}
             />
           </nav>
@@ -1664,7 +2177,25 @@ function App() {
               className="card"
             />
           ) : viewMode === "cart" ? (
-            <CartPage isAuthenticated={isAuthenticated} />
+            <CartPage
+              isAuthenticated={isAuthenticated}
+              onCheckout={openCheckout}
+            />
+          ) : viewMode === "checkout" ? (
+            <CheckoutPage
+              isAuthenticated={isAuthenticated}
+              userEmail={authUser?.email}
+              onBack={openCart}
+              onOrderCreated={() => {
+                setViewMode("profile");
+                window.location.hash = "profile";
+              }}
+            />
+          ) : viewMode === "profile" ? (
+            <ProfilePage
+              isAuthenticated={isAuthenticated}
+              userEmail={authUser?.email}
+            />
           ) : (
             <>
               <section className="card hero">

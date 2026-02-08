@@ -5,7 +5,7 @@ from app_catalog.serializers import ProductVariantSerializer
 
 class OrderItemSerializer(serializers.ModelSerializer):
     product_variant = ProductVariantSerializer(read_only=True)
-    total_price = serializers.ReadOnlyField(source='total_price')
+    total_price = serializers.ReadOnlyField()
 
     class Meta:
         model = OrderItem
