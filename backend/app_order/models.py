@@ -45,7 +45,7 @@ class OrderItem(models.Model):
     order = models.ForeignKey(Order, on_delete=models.CASCADE, related_name='order_items', verbose_name='Заказ')
     product_variant = models.ForeignKey(ProductVariant, on_delete=models.CASCADE, verbose_name='Вариант товара')
     quantity = models.PositiveIntegerField(default=1, verbose_name='Количество')
-    price = models.DecimalField(max_digits=10, decimal_places=2, verbose_name='Цена за единицу')
+    price = models.DecimalField(max_digits=10, decimal_places=2, verbose_name='Цена за единицу', default=0)
 
     class Meta:
         verbose_name = 'Элемент заказа'
@@ -57,4 +57,6 @@ class OrderItem(models.Model):
     @property
     def total_price(self):
         """Общая стоимость данного элемента (цена за единицу * количество)"""
-        return self.price * self.quantity
+        if self.price is not None:
+            return self.price * self.quantity
+        return 0
