@@ -10,12 +10,18 @@ from app_catalog.models import ProductVariant
 
 class CartDetailView(generics.RetrieveUpdateDestroyAPIView):
     """
-    Получить, обновить или удалить корзину текущего пользователя
+    Представление для получения, обновления или удаления корзины текущего пользователя.
+    
+    Позволяет получить содержимое корзины, обновить данные корзины или удалить корзину.
     """
     serializer_class = CartSerializer
     permission_classes = [IsAuthenticated]
 
     def get_object(self):
+        """
+        Получает объект корзины текущего пользователя.
+        Если корзина не существует, создает новую.
+        """
         cart, created = Cart.objects.get_or_create(user=self.request.user)
         return cart
 
@@ -24,7 +30,19 @@ class CartDetailView(generics.RetrieveUpdateDestroyAPIView):
 @permission_classes([IsAuthenticated])
 def add_to_cart(request):
     """
-    Добавить товар в корзину
+    Добавляет товар в корзину текущего пользователя.
+    
+    Args:
+        request: HTTP-запрос с данными о товаре и количестве
+        
+    Returns:
+        Response: JSON-ответ с результатом операции
+        
+    Request body:
+        {
+            "product_variant_id": int,  # ID варианта товара
+            "quantity": int             # Количество товара (по умолчанию 1)
+        }
     """
     serializer = AddToCartSerializer(data=request.data)
     if serializer.is_valid():
@@ -60,7 +78,14 @@ def add_to_cart(request):
 @permission_classes([IsAuthenticated])
 def remove_from_cart(request, item_id):
     """
-    Удалить конкретный элемент из корзины
+    Удаляет конкретный элемент из корзины текущего пользователя.
+    
+    Args:
+        request: HTTP-запрос
+        item_id: ID элемента корзины для удаления
+        
+    Returns:
+        Response: JSON-ответ с результатом операции
     """
     cart = get_object_or_404(Cart, user=request.user)
     cart_item = get_object_or_404(CartItem, id=item_id, cart=cart)
@@ -72,22 +97,34 @@ def remove_from_cart(request, item_id):
 @permission_classes([IsAuthenticated])
 def update_cart_item(request, item_id):
     """
-    Обновить количество товара в корзине
+    Обновляет количество товара в корзине текущего пользователя.
+    
+    Args:
+        request: HTTP-запрос с новым количеством
+        item_id: ID элемента корзины для обновления
+        
+    Returns:
+        Response: JSON-ответ с обновленными данными элемента корзины
+        
+    Request body:
+        {
+            "quantity": int  # Новое количество товара
+        }
     """
     cart = get_object_or_404(Cart, user=request.user)
     cart_item = get_object_or_404(CartItem, id=item_id, cart=cart)
-    
+
     quantity = request.data.get('quantity')
     if quantity is None:
         return Response({'error': 'Количество не указано'}, status=status.HTTP_400_BAD_REQUEST)
-    
+
     if quantity <= 0:
         cart_item.delete()
         return Response({'message': 'Товар удален из корзины'}, status=status.HTTP_200_OK)
-    
+
     cart_item.quantity = quantity
     cart_item.save()
-    
+
     serializer = CartItemSerializer(cart_item)
     return Response(serializer.data, status=status.HTTP_200_OK)
 
@@ -96,7 +133,13 @@ def update_cart_item(request, item_id):
 @permission_classes([IsAuthenticated])
 def clear_cart(request):
     """
-    Очистить всю корзину
+    Очищает всю корзину текущего пользователя.
+    
+    Args:
+        request: HTTP-запрос
+        
+    Returns:
+        Response: JSON-ответ с результатом операции
     """
     cart = get_object_or_404(Cart, user=request.user)
     cart.items.all().delete()
