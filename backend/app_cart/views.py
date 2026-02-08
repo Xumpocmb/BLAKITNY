@@ -79,18 +79,19 @@ def add_to_cart(request):
 def remove_from_cart(request, item_id):
     """
     Удаляет конкретный элемент из корзины текущего пользователя.
-    
+
     Args:
         request: HTTP-запрос
         item_id: ID элемента корзины для удаления
-        
+
     Returns:
         Response: JSON-ответ с результатом операции
     """
     cart = get_object_or_404(Cart, user=request.user)
     cart_item = get_object_or_404(CartItem, id=item_id, cart=cart)
     cart_item.delete()
-    return Response({'message': 'Товар удален из корзины'}, status=status.HTTP_204_NO_CONTENT)
+    # Для статуса 204 не должно быть тела ответа
+    return Response(status=status.HTTP_204_NO_CONTENT)
 
 
 @api_view(['PUT', 'PATCH'])
