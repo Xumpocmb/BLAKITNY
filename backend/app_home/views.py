@@ -3,8 +3,8 @@ from rest_framework import generics
 from rest_framework.views import APIView
 from rest_framework.permissions import AllowAny
 from rest_framework import status
-from .models import Slider, CompanyDetails, SiteLogo, SocialNetwork, DeliveryPayment, AboutUs, Feedback, DeliveryOption
-from .serializers import SliderSerializer, CompanyDetailsSerializer, SiteLogoSerializer, SocialNetworkSerializer, DeliveryPaymentSerializer, AboutUsSerializer, FeedbackSerializer, DeliveryOptionSerializer
+from .models import Slider, CompanyDetails, SiteLogo, SocialNetwork, DeliveryPayment, AboutUs, Feedback, DeliveryOption, PhoneNumber, Store
+from .serializers import SliderSerializer, CompanyDetailsSerializer, SiteLogoSerializer, SocialNetworkSerializer, DeliveryPaymentSerializer, AboutUsSerializer, FeedbackSerializer, DeliveryOptionSerializer, PhoneNumberSerializer, StoreSerializer
 
 
 class SliderListView(generics.ListAPIView):
@@ -214,6 +214,29 @@ class DeliveryOptionListView(generics.ListAPIView):
         queryset = self.get_queryset()
         serializer = self.get_serializer(queryset, many=True)
         return Response({"delivery_options": serializer.data})
+
+
+class StoreListView(generics.ListAPIView):
+    """
+    API endpoint that returns all stores
+    """
+    permission_classes = [AllowAny]
+    queryset = Store.objects.all()
+    serializer_class = StoreSerializer
+
+
+class PhoneNumberListView(generics.ListAPIView):
+    """
+    API endpoint that returns active phone numbers
+    """
+    permission_classes = [AllowAny]
+    queryset = PhoneNumber.objects.filter(is_active=True)
+    serializer_class = PhoneNumberSerializer
+
+    def list(self, request, *args, **kwargs):
+        queryset = self.get_queryset()
+        serializer = self.get_serializer(queryset, many=True)
+        return Response({"phone_numbers": serializer.data})
 
 
 class FeedbackCreateView(APIView):

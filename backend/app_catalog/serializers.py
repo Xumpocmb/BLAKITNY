@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from .models import Category, Subcategory, Size, Fabric, Product, ProductVariant, ProductImage, Store
+from .models import Category, Subcategory, Size, Fabric, Product, ProductVariant, ProductImage
 
 
 class SizeSerializer(serializers.ModelSerializer):
@@ -63,8 +63,4 @@ class ProductListSerializer(serializers.ModelSerializer):
         fields = ['id', 'name', 'category', 'subcategory', 'fabric_type', 'binding', 'picture_title', 'images', 'is_active', 'is_promotion', 'is_new']
 
 
-class StoreSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = Store
-        fields = '__all__'
         

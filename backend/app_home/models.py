@@ -1,6 +1,37 @@
 from django.db import models
 
 
+class PhoneNumber(models.Model):
+    """
+    Модель номера телефона
+    """
+    phone_number = models.CharField(max_length=20, verbose_name='Номер телефона')
+    is_active = models.BooleanField(default=True, verbose_name='Активен')
+
+    class Meta:
+        verbose_name = 'Номер телефона'
+        verbose_name_plural = 'Номера телефонов'
+        ordering = ['phone_number']
+
+    def __str__(self):
+        return self.phone_number
+
+
+class Store(models.Model):
+    city = models.CharField(max_length=100, verbose_name='Город')
+    address = models.CharField(max_length=255, verbose_name='Адрес')
+    phone = models.CharField(max_length=20, verbose_name='Телефон', blank=True, null=True)
+    work_schedule = models.TextField(verbose_name='График работы')
+
+    class Meta:
+        verbose_name = 'Магазин'
+        verbose_name_plural = 'Магазины'
+        ordering = ['city', 'address']
+
+    def __str__(self):
+        return f'{self.city}, {self.address}'
+
+
 class DeliveryOption(models.Model):
     """
     Модель вариантов доставки

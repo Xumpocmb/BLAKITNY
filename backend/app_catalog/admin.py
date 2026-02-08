@@ -1,5 +1,5 @@
 from django.contrib import admin
-from .models import Category, Subcategory, Size, Fabric, Product, ProductVariant, ProductImage, Store
+from .models import Category, Subcategory, Size, Fabric, Product, ProductVariant, ProductImage
 
 
 class ProductImageInline(admin.TabularInline):
@@ -93,11 +93,3 @@ class FabricAdmin(admin.ModelAdmin):
     search_fields = ('name',)
 
 
-@admin.register(Store)
-class StoreAdmin(admin.ModelAdmin):
-    """
-    Admin interface for Store model.
-    """
-    list_display = ('city', 'address', 'work_schedule')
-    search_fields = ('city', 'address')
-    list_filter = ('city',)

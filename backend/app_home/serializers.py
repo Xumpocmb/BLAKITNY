@@ -1,5 +1,17 @@
 from rest_framework import serializers
-from .models import Slider, CompanyDetails, SiteLogo, SocialNetwork, DeliveryPayment, AboutUs, Feedback, DeliveryOption
+from .models import Slider, CompanyDetails, SiteLogo, SocialNetwork, DeliveryPayment, AboutUs, Feedback, DeliveryOption, PhoneNumber, Store
+
+
+class StoreSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Store
+        fields = '__all__'
+
+
+class PhoneNumberSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = PhoneNumber
+        fields = ['id', 'phone_number', 'is_active']
 
 
 class DeliveryOptionSerializer(serializers.ModelSerializer):

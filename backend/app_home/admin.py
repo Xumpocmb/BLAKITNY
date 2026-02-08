@@ -1,5 +1,5 @@
 from django.contrib import admin
-from .models import Slider, CompanyDetails, SiteLogo, SocialNetwork, DeliveryPayment, AboutUs, Feedback, DeliveryOption
+from .models import Slider, CompanyDetails, SiteLogo, SocialNetwork, DeliveryPayment, AboutUs, Feedback, DeliveryOption, PhoneNumber, Store
 
 
 @admin.register(Slider)
@@ -98,3 +98,20 @@ class FeedbackAdmin(admin.ModelAdmin):
         """Display a shortened version of the message in the admin list view"""
         return obj.message[:50] + "..." if len(obj.message) > 50 else obj.message
     short_message.short_description = "Сообщение"
+
+
+@admin.register(Store)
+class StoreAdmin(admin.ModelAdmin):
+    list_display = ("id", "city", "address", "phone")
+    list_filter = ("city",)
+    search_fields = ("city", "address", "phone")
+    list_display_links = ("id", "city", "address")
+
+
+@admin.register(PhoneNumber)
+class PhoneNumberAdmin(admin.ModelAdmin):
+    list_display = ("id", "phone_number", "is_active")
+    list_editable = ("is_active",)
+    list_filter = ("is_active",)
+    search_fields = ("phone_number",)
+    list_display_links = ("id", "phone_number")
