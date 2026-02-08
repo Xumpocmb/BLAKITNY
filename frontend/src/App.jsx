@@ -1132,7 +1132,7 @@ function ProfilePage({
     setDeleteSaving(true);
     setDeleteNotice("");
     try {
-      const res = await fetch("/api/users/delete-account/", {
+      const res = await fetch("/api/users/archive-account/", {
         method: "DELETE",
         headers: { Authorization: `Bearer ${accessToken}` },
       });
