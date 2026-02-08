@@ -30,26 +30,28 @@ def add_to_cart(request):
     if serializer.is_valid():
         product_variant_id = serializer.validated_data['product_variant_id']
         quantity = serializer.validated_data['quantity']
-        
+
         try:
             product_variant = ProductVariant.objects.get(id=product_variant_id, is_active=True)
         except ProductVariant.DoesNotExist:
             return Response({'error': 'Вариант товара не найден'}, status=status.HTTP_404_NOT_FOUND)
-        
+
         cart, created = Cart.objects.get_or_create(user=request.user)
-        
+
         # Проверяем, есть ли уже этот вариант в корзине
+        # Используем get_or_create с product_variant, так как каждый ProductVariant уникален
+        # и включает в себя все характеристики продукта (через связь с Product)
         cart_item, created = CartItem.objects.get_or_create(
             cart=cart,
             product_variant=product_variant,
             defaults={'quantity': quantity}
         )
-        
+
         if not created:
             # Если элемент уже существует, увеличиваем количество
             cart_item.quantity += quantity
             cart_item.save()
-        
+
         return Response({'message': 'Товар добавлен в корзину'}, status=status.HTTP_201_CREATED)
     return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
