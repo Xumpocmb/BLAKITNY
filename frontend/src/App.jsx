@@ -1141,7 +1141,12 @@ function ProfilePage({
         setDeleteNotice(normalizeError(data, "Не удалось удалить профиль"));
         return;
       }
-      onAccountDeleted?.();
+      if (typeof onAccountDeleted === "function") {
+        onAccountDeleted();
+      } else {
+        clearTokens();
+        window.location.hash = "";
+      }
     } catch {
       setDeleteNotice("Не удалось удалить профиль");
     } finally {
@@ -1815,6 +1820,7 @@ function App() {
   const [deliveryData, setDeliveryData] = useState(null);
   const [socialNetworks, setSocialNetworks] = useState([]);
   const [categories, setCategories] = useState([]);
+  const [subcategories, setSubcategories] = useState([]);
   const [authUser, setAuthUser] = useState(null);
   const [authModalOpen, setAuthModalOpen] = useState(false);
   const [authMode, setAuthMode] = useState("login");
@@ -1823,6 +1829,8 @@ function App() {
   const [fabrics, setFabrics] = useState([]);
   const [selectedSizes, setSelectedSizes] = useState([]);
   const [selectedFabrics, setSelectedFabrics] = useState([]);
+  const [selectedCategoryId, setSelectedCategoryId] = useState(null);
+  const [selectedSubcategoryId, setSelectedSubcategoryId] = useState(null);
   const [priceFrom, setPriceFrom] = useState("");
   const [priceTo, setPriceTo] = useState("");
   const [sortMode, setSortMode] = useState("newest");
@@ -1845,6 +1853,22 @@ function App() {
   const activeProductImages = useMemo(() => {
     return activeProduct ? getActiveImages(activeProduct) : [];
   }, [activeProduct]);
+  const orderedSubcategories = useMemo(() => {
+    const active = subcategories.filter((item) => item?.is_active !== false);
+    if (!selectedCategoryId) return active;
+    const selectedId = String(selectedCategoryId);
+    const primary = [];
+    const rest = [];
+    active.forEach((item) => {
+      const categoryId = item?.category;
+      if (categoryId && String(categoryId) === selectedId) {
+        primary.push(item);
+      } else {
+        rest.push(item);
+      }
+    });
+    return [...primary, ...rest];
+  }, [subcategories, selectedCategoryId]);
   const filteredProducts = useMemo(() => {
     const sizeSet = new Set(selectedSizes.map((id) => String(id)));
     const fabricSet = new Set(selectedFabrics.map((id) => String(id)));
@@ -1852,6 +1876,21 @@ function App() {
     const maxPrice = parsePrice(priceTo);
 
     const filtered = catalogProducts.filter((product) => {
+      if (selectedSubcategoryId) {
+        const subcategoryId = product?.subcategory?.id;
+        if (
+          !subcategoryId ||
+          String(subcategoryId) !== String(selectedSubcategoryId)
+        ) {
+          return false;
+        }
+      }
+      if (selectedCategoryId) {
+        const categoryId = product?.category?.id;
+        if (!categoryId || String(categoryId) !== String(selectedCategoryId)) {
+          return false;
+        }
+      }
       if (fabricSet.size > 0) {
         const fabricId = product?.fabric_type?.id;
         if (!fabricId || !fabricSet.has(String(fabricId))) return false;
@@ -1901,6 +1940,8 @@ function App() {
     priceFrom,
     priceTo,
     selectedFabrics,
+    selectedCategoryId,
+    selectedSubcategoryId,
     selectedSizes,
     sortMode,
   ]);
@@ -1957,21 +1998,33 @@ function App() {
       if (hash === "#catalog") {
         setActiveProductId(null);
         setViewMode("catalog");
+        window.scrollTo({ top: 0 });
+        return;
+      }
+      if (hash === "#categories") {
+        setActiveProductId(null);
+        setSelectedCategoryId(null);
+        setSelectedSubcategoryId(null);
+        setViewMode("categories");
+        window.scrollTo({ top: 0 });
         return;
       }
       if (hash === "#about") {
         setActiveProductId(null);
         setViewMode("about");
+        window.scrollTo({ top: 0 });
         return;
       }
       if (hash === "#delivery") {
         setActiveProductId(null);
         setViewMode("delivery");
+        window.scrollTo({ top: 0 });
         return;
       }
       if (hash === "#contacts") {
         setActiveProductId(null);
         setViewMode("contacts");
+        window.scrollTo({ top: 0 });
         return;
       }
       if (hash === "#cart") {
@@ -2120,6 +2173,18 @@ function App() {
       }
     }
 
+    async function loadSubcategories(signal) {
+      try {
+        const res = await fetch("/api/catalog/subcategories/", { signal });
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        const data = await res.json();
+        const list = Array.isArray(data) ? data : [];
+        setSubcategories(list.filter((item) => item?.is_active !== false));
+      } catch {
+        setSubcategories([]);
+      }
+    }
+
     async function loadProfile(accessToken, refreshToken, signal) {
       try {
         const res = await fetch("/api/users/me/", {
@@ -2258,6 +2323,8 @@ function App() {
         await pause(1000, controller.signal);
         await loadCategories(controller.signal);
         await pause(1000, controller.signal);
+        await loadSubcategories(controller.signal);
+        await pause(1000, controller.signal);
         await bootstrapAuth(controller.signal);
         await pause(1000, controller.signal);
         await loadSlider(controller.signal);
@@ -2335,14 +2402,55 @@ function App() {
   const handleResetFilters = () => {
     setSelectedSizes([]);
     setSelectedFabrics([]);
+    setSelectedCategoryId(null);
+    setSelectedSubcategoryId(null);
     setPriceFrom("");
     setPriceTo("");
     setSortMode("newest");
   };
 
-  const openCatalog = () => {
+  const openCategories = (event) => {
+    event?.preventDefault();
+    setSelectedCategoryId(null);
+    setSelectedSubcategoryId(null);
+    setViewMode("categories");
+    window.location.hash = "categories";
+    window.scrollTo({ top: 0 });
+  };
+
+  const openCatalogByCategory = (categoryId) => {
+    setSelectedCategoryId(categoryId);
+    setSelectedSubcategoryId(null);
+    setSelectedSizes([]);
+    setSelectedFabrics([]);
+    setPriceFrom("");
+    setPriceTo("");
+    setSortMode("newest");
+    setActiveProductId(null);
     setViewMode("catalog");
     window.location.hash = "catalog";
+    window.scrollTo({ top: 0 });
+  };
+
+  const openAbout = (event) => {
+    event?.preventDefault();
+    setViewMode("about");
+    window.location.hash = "about";
+    window.scrollTo({ top: 0 });
+  };
+
+  const openDelivery = (event) => {
+    event?.preventDefault();
+    setViewMode("delivery");
+    window.location.hash = "delivery";
+    window.scrollTo({ top: 0 });
+  };
+
+  const openContacts = (event) => {
+    event?.preventDefault();
+    setViewMode("contacts");
+    window.location.hash = "contacts";
+    window.scrollTo({ top: 0 });
   };
 
   const openCart = () => {
@@ -2466,16 +2574,19 @@ function App() {
             </a>
           </div>
           <nav className="nav" aria-label="Навигация">
-            <a className="navLink" href="#catalog" onClick={openCatalog}>
+            <a className="navLink" href="#" onClick={goHome}>
+              Главная
+            </a>
+            <a className="navLink" href="#categories" onClick={openCategories}>
               Каталог
             </a>
-            <a className="navLink" href="#about">
+            <a className="navLink" href="#about" onClick={openAbout}>
               О нас
             </a>
-            <a className="navLink" href="#delivery">
+            <a className="navLink" href="#delivery" onClick={openDelivery}>
               Доставка и оплата
             </a>
-            <a className="navLink" href="#contacts">
+            <a className="navLink" href="#contacts" onClick={openContacts}>
               Контакты
             </a>
             <a
@@ -2789,6 +2900,44 @@ function App() {
                 <aside className="catalogFilters">
                   <details className="filterGroup" open>
                     <summary className="filterSummary">
+                      <span className="filterTitle">Подкатегория</span>
+                    </summary>
+                    <div className="filterOptions">
+                      {orderedSubcategories.length === 0 ? (
+                        <div className="filterEmpty">
+                          Нет доступных подкатегорий
+                        </div>
+                      ) : (
+                        <select
+                          className="filterSelect"
+                          value={selectedSubcategoryId ?? ""}
+                          onChange={(e) => {
+                            const nextValue = e.target.value;
+                            if (!nextValue) {
+                              setSelectedSubcategoryId(null);
+                              return;
+                            }
+                            const matched = subcategories.find(
+                              (item) => String(item?.id) === nextValue,
+                            );
+                            setSelectedSubcategoryId(nextValue);
+                            if (matched?.category) {
+                              setSelectedCategoryId(matched.category);
+                            }
+                          }}
+                        >
+                          <option value="">Все подкатегории</option>
+                          {orderedSubcategories.map((item) => (
+                            <option key={item.id} value={item.id}>
+                              {item.name}
+                            </option>
+                          ))}
+                        </select>
+                      )}
+                    </div>
+                  </details>
+                  <details className="filterGroup" open>
+                    <summary className="filterSummary">
                       <span className="filterTitle">Размер</span>
                       {selectedSizes.length > 0 ? (
                         <span className="filterCount">
@@ -2977,6 +3126,13 @@ function App() {
             <AboutSection data={aboutUsData} className="card" />
           ) : viewMode === "delivery" ? (
             <DeliveryPaymentSection data={deliveryData} className="card" />
+          ) : viewMode === "categories" ? (
+            <CategoriesSection
+              categories={categories}
+              className="card"
+              onCategoryClick={openCatalogByCategory}
+              limit={null}
+            />
           ) : viewMode === "contacts" ? (
             <ContactsSection
               socialNetworks={socialNetworks}
@@ -3013,25 +3169,22 @@ function App() {
               onBack={openProfile}
             />
           ) : (
-            <>
+            <div className="homeSections">
               <section className="card hero">
-                <h1 className="heroTitle">Уют в светлых оттенках</h1>
-                <p className="heroSubtitle">
-                  Главная страница: слайдер подтягивается из бэкенда (app_home /
-                  SliderListView). Остальные блоки добавим позже.
-                </p>
                 <HeroSlider
                   key={sliderKey}
                   slides={sliderSlides}
                   error={sliderError}
                 />
-                <div className="statusRow">API: /api/slider/</div>
               </section>
-              <CategoriesSection categories={categories} />
+              <CategoriesSection
+                categories={categories}
+                onCategoryClick={openCatalogByCategory}
+              />
               <AboutSection data={aboutUsData} />
               <DeliveryPaymentSection data={deliveryData} />
               <ContactsSection socialNetworks={socialNetworks} phone={phone} />
-            </>
+            </div>
           )}
         </div>
       </main>
