@@ -176,3 +176,4 @@ dist-ssr
 
 frontend/node_modules/
 update_and_merge.sh
+backend/QWEN.md

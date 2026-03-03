@@ -75,3 +75,15 @@ class ProductWithVariantsListView(generics.ListAPIView):
     serializer_class = ProductSerializer  # Use detailed serializer that includes variants
 
 
+class SubcategoryByCategoryView(generics.ListAPIView):
+    """
+    Возвращает все подкатегории для указанной категории.
+    """
+    permission_classes = [AllowAny]
+    serializer_class = SubcategorySerializer
+
+    def get_queryset(self):
+        category_id = self.kwargs.get('category_id')
+        return Subcategory.objects.filter(category_id=category_id, is_active=True)
+
+
