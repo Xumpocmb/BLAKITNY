@@ -1825,7 +1825,6 @@ function App() {
   const [authModalOpen, setAuthModalOpen] = useState(false);
   const [authMode, setAuthMode] = useState("login");
   const [catalogProducts, setCatalogProducts] = useState([]);
-  const [sizes, setSizes] = useState([]);
   const [fabrics, setFabrics] = useState([]);
   const [selectedSizes, setSelectedSizes] = useState([]);
   const [selectedFabrics, setSelectedFabrics] = useState([]);
@@ -1845,6 +1844,9 @@ function App() {
     () => sliderSlides.map((s) => s.id).join("-"),
     [sliderSlides],
   );
+  const activeCatalogCategories = useMemo(() => {
+    return categories.filter((item) => item?.is_active !== false);
+  }, [categories]);
   const activeProduct = useMemo(() => {
     return (
       catalogProducts.find((product) => product.id === activeProductId) || null
@@ -1869,6 +1871,22 @@ function App() {
     });
     return [...primary, ...rest];
   }, [subcategories, selectedCategoryId]);
+  const availableSizes = useMemo(() => {
+    const sizeMap = new Map();
+    catalogProducts.forEach((product) => {
+      const variants = Array.isArray(product?.variants) ? product.variants : [];
+      variants.forEach((variant) => {
+        if (!variant || variant.is_active === false) return;
+        const size = variant?.size;
+        if (!size || size.is_active === false || !size.id) return;
+        const key = String(size.id);
+        if (!sizeMap.has(key)) {
+          sizeMap.set(key, size);
+        }
+      });
+    });
+    return Array.from(sizeMap.values());
+  }, [catalogProducts]);
   const filteredProducts = useMemo(() => {
     const sizeSet = new Set(selectedSizes.map((id) => String(id)));
     const fabricSet = new Set(selectedFabrics.map((id) => String(id)));
@@ -1945,6 +1963,16 @@ function App() {
     selectedSizes,
     sortMode,
   ]);
+
+  useEffect(() => {
+    if (selectedSizes.length === 0) return;
+    const availableSizeIds = new Set(
+      availableSizes.map((size) => String(size.id)),
+    );
+    setSelectedSizes((prev) =>
+      prev.filter((sizeId) => availableSizeIds.has(String(sizeId))),
+    );
+  }, [availableSizes, selectedSizes.length]);
 
   useEffect(() => {
     applyTheme(THEMES[themeName] ?? THEMES.cream);
@@ -2079,6 +2107,27 @@ function App() {
   }, [isAuthenticated, redirectToAuth]);
 
   useEffect(() => {
+    const descriptionByView = {
+      delivery:
+        "Сроки и способы доставки, география, условия бесплатной доставки и отслеживание заказа.",
+    };
+    const titleByView = {
+      delivery: "Доставка",
+    };
+    const nextTitle = titleByView[viewMode] || "BLAKITNY";
+    const nextDescription =
+      descriptionByView[viewMode] || "Интернет-магазин BLAKITNY";
+    document.title = nextTitle;
+    let metaDescription = document.querySelector('meta[name="description"]');
+    if (!metaDescription) {
+      metaDescription = document.createElement("meta");
+      metaDescription.setAttribute("name", "description");
+      document.head.appendChild(metaDescription);
+    }
+    metaDescription.setAttribute("content", nextDescription);
+  }, [viewMode]);
+
+  useEffect(() => {
     const controller = new AbortController();
 
     async function loadSiteLogo(signal) {
@@ -2139,8 +2188,8 @@ function App() {
         const res = await fetch("/api/delivery-payment/", { signal });
         if (!res.ok) throw new Error(`HTTP ${res.status}`);
         const data = await res.json();
-        if (data?.delivery_info || data?.payment_info) {
-          setDeliveryData(data);
+        if (data?.delivery_info) {
+          setDeliveryData({ delivery_info: data.delivery_info });
         } else {
           setDeliveryData(null);
         }
@@ -2170,18 +2219,6 @@ function App() {
         setCategories(list);
       } catch {
         setCategories([]);
-      }
-    }
-
-    async function loadSubcategories(signal) {
-      try {
-        const res = await fetch("/api/catalog/subcategories/", { signal });
-        if (!res.ok) throw new Error(`HTTP ${res.status}`);
-        const data = await res.json();
-        const list = Array.isArray(data) ? data : [];
-        setSubcategories(list.filter((item) => item?.is_active !== false));
-      } catch {
-        setSubcategories([]);
       }
     }
 
@@ -2268,18 +2305,6 @@ function App() {
       }
     }
 
-    async function loadSizes(signal) {
-      try {
-        const res = await fetch("/api/catalog/sizes/", { signal });
-        if (!res.ok) throw new Error(`HTTP ${res.status}`);
-        const data = await res.json();
-        const list = Array.isArray(data) ? data : [];
-        setSizes(list.filter((item) => item?.is_active !== false));
-      } catch {
-        setSizes([]);
-      }
-    }
-
     async function loadFabrics(signal) {
       try {
         const res = await fetch("/api/catalog/fabrics/", { signal });
@@ -2292,11 +2317,16 @@ function App() {
       }
     }
 
-    async function loadCatalogProducts(signal) {
+    async function loadCatalogProducts(signal, categoryId = null) {
       try {
-        const res = await fetch("/api/catalog/products-with-variants/", {
-          signal,
-        });
+        const query = new URLSearchParams();
+        if (categoryId) {
+          query.set("category_id", String(categoryId));
+        }
+        const url = query.size
+          ? `/api/catalog/products/?${query.toString()}`
+          : "/api/catalog/products/";
+        const res = await fetch(url, { signal });
         if (!res.ok) throw new Error(`HTTP ${res.status}`);
         const data = await res.json();
         const list = Array.isArray(data) ? data : [];
@@ -2323,17 +2353,13 @@ function App() {
         await pause(1000, controller.signal);
         await loadCategories(controller.signal);
         await pause(1000, controller.signal);
-        await loadSubcategories(controller.signal);
-        await pause(1000, controller.signal);
         await bootstrapAuth(controller.signal);
         await pause(1000, controller.signal);
         await loadSlider(controller.signal);
         await pause(1000, controller.signal);
-        await loadSizes(controller.signal);
-        await pause(1000, controller.signal);
         await loadFabrics(controller.signal);
         await pause(1000, controller.signal);
-        await loadCatalogProducts(controller.signal);
+        await loadCatalogProducts(controller.signal, null);
       } finally {
         if (!controller.signal.aborted) setPageReady(true);
       }
@@ -2342,6 +2368,59 @@ function App() {
     bootstrap();
     return () => controller.abort();
   }, []);
+
+  useEffect(() => {
+    if (!pageReady) return;
+    const controller = new AbortController();
+
+    async function syncCatalogData() {
+      try {
+        const productQuery = new URLSearchParams();
+        if (selectedCategoryId) {
+          productQuery.set("category_id", String(selectedCategoryId));
+        }
+        const productsUrl = productQuery.size
+          ? `/api/catalog/products/?${productQuery.toString()}`
+          : "/api/catalog/products/";
+        const productsRes = await fetch(productsUrl, {
+          signal: controller.signal,
+        });
+        if (!productsRes.ok) throw new Error(`HTTP ${productsRes.status}`);
+        const productsData = await productsRes.json();
+        setCatalogProducts(Array.isArray(productsData) ? productsData : []);
+      } catch {
+        setCatalogProducts([]);
+      }
+
+      if (!selectedCategoryId) {
+        setSubcategories([]);
+        setSelectedSubcategoryId(null);
+        return;
+      }
+
+      try {
+        const subcategoriesRes = await fetch(
+          `/api/catalog/categories/${selectedCategoryId}/subcategories/`,
+          {
+            signal: controller.signal,
+          },
+        );
+        if (!subcategoriesRes.ok) {
+          throw new Error(`HTTP ${subcategoriesRes.status}`);
+        }
+        const subcategoriesData = await subcategoriesRes.json();
+        const nextSubcategories = Array.isArray(subcategoriesData)
+          ? subcategoriesData.filter((item) => item?.is_active !== false)
+          : [];
+        setSubcategories(nextSubcategories);
+      } catch {
+        setSubcategories([]);
+      }
+    }
+
+    syncCatalogData();
+    return () => controller.abort();
+  }, [pageReady, selectedCategoryId]);
 
   const openAuth = (mode) => {
     setAuthMode(mode);
@@ -2430,6 +2509,11 @@ function App() {
     setViewMode("catalog");
     window.location.hash = "catalog";
     window.scrollTo({ top: 0 });
+  };
+
+  const handleCatalogCategorySelect = (categoryId) => {
+    setSelectedCategoryId(categoryId);
+    setSelectedSubcategoryId(null);
   };
 
   const openAbout = (event) => {
@@ -2584,7 +2668,7 @@ function App() {
               О нас
             </a>
             <a className="navLink" href="#delivery" onClick={openDelivery}>
-              Доставка и оплата
+              Доставка
             </a>
             <a className="navLink" href="#contacts" onClick={openContacts}>
               Контакты
@@ -2645,12 +2729,66 @@ function App() {
                           className="productMainImage"
                           onClick={() => openImageModal(activeImageIndex)}
                         >
+                          {activeProductImages.length > 1 ? (
+                            <button
+                              type="button"
+                              className="productImageNav productImageNavPrev"
+                              onClick={(event) => {
+                                event.stopPropagation();
+                                prevImage();
+                              }}
+                              aria-label="Предыдущее изображение"
+                            >
+                              <svg
+                                className="productImageNavIcon"
+                                viewBox="0 0 24 24"
+                                fill="none"
+                                xmlns="http://www.w3.org/2000/svg"
+                                aria-hidden="true"
+                              >
+                                <path
+                                  d="M14 6L8 12L14 18"
+                                  stroke="currentColor"
+                                  strokeWidth="2.25"
+                                  strokeLinecap="round"
+                                  strokeLinejoin="round"
+                                />
+                              </svg>
+                            </button>
+                          ) : null}
                           <img
                             src={toProxiedUrl(
                               activeProductImages[activeImageIndex]?.image,
                             )}
                             alt={activeProduct?.name || "Товар"}
                           />
+                          {activeProductImages.length > 1 ? (
+                            <button
+                              type="button"
+                              className="productImageNav productImageNavNext"
+                              onClick={(event) => {
+                                event.stopPropagation();
+                                nextImage();
+                              }}
+                              aria-label="Следующее изображение"
+                            >
+                              <svg
+                                className="productImageNavIcon"
+                                viewBox="0 0 24 24"
+                                fill="none"
+                                xmlns="http://www.w3.org/2000/svg"
+                                aria-hidden="true"
+                              >
+                                <path
+                                  d="M10 6L16 12L10 18"
+                                  stroke="currentColor"
+                                  strokeWidth="2.25"
+                                  strokeLinecap="round"
+                                  strokeLinejoin="round"
+                                />
+                              </svg>
+                            </button>
+                          ) : null}
                         </div>
                         <div className="productThumbs">
                           {activeProductImages.map((img, idx) => (
@@ -2905,7 +3043,9 @@ function App() {
                     <div className="filterOptions">
                       {orderedSubcategories.length === 0 ? (
                         <div className="filterEmpty">
-                          Нет доступных подкатегорий
+                          {selectedCategoryId
+                            ? "Нет доступных подкатегорий"
+                            : "Выберите категорию"}
                         </div>
                       ) : (
                         <select
@@ -2946,12 +3086,12 @@ function App() {
                       ) : null}
                     </summary>
                     <div className="filterOptions filterOptionsScrollable">
-                      {sizes.length === 0 ? (
+                      {availableSizes.length === 0 ? (
                         <div className="filterEmpty">
                           Нет доступных размеров
                         </div>
                       ) : (
-                        sizes.map((size) => (
+                        availableSizes.map((size) => (
                           <label className="filterOption" key={size.id}>
                             <input
                               type="checkbox"
@@ -3035,6 +3175,31 @@ function App() {
                   </button>
                 </aside>
                 <div className="catalogContent">
+                  <div className="catalogCategories card">
+                    <button
+                      type="button"
+                      className={`catalogCategoryChip ${
+                        !selectedCategoryId ? "catalogCategoryChipActive" : ""
+                      }`}
+                      onClick={() => handleCatalogCategorySelect(null)}
+                    >
+                      Все категории
+                    </button>
+                    {activeCatalogCategories.map((category) => (
+                      <button
+                        type="button"
+                        key={category.id}
+                        className={`catalogCategoryChip ${
+                          String(selectedCategoryId) === String(category.id)
+                            ? "catalogCategoryChipActive"
+                            : ""
+                        }`}
+                        onClick={() => handleCatalogCategorySelect(category.id)}
+                      >
+                        {category.name}
+                      </button>
+                    ))}
+                  </div>
                   <div className="catalogToolbar card">
                     <div className="catalogCount">
                       Товаров: {filteredProducts.length}
@@ -3219,7 +3384,7 @@ function App() {
             <div className="footerCol">
               <div className="footerTitle">Информация</div>
               <a className="footerLink" href="#delivery">
-                Доставка и оплата
+                Доставка
               </a>
               <a className="footerLink" href="#contacts">
                 Контакты
