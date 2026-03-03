@@ -678,6 +678,12 @@
   border-top: 1px solid var(--border);
 }
 
+.filterOptionsScrollable {
+  max-height: min(46vh, 360px);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
 .filterSelect {
   width: 100%;
   border-radius: 10px;
@@ -1316,6 +1322,8 @@
   height: 100%;
   object-fit: cover;
   transition: transform 0.3s ease;
+  image-rendering: auto;
+  backface-visibility: hidden;
 }
 
 .categoryCard:hover .categoryImage {
