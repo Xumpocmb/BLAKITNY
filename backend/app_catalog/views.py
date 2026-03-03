@@ -63,6 +63,21 @@ class ProductListCreateView(generics.ListCreateAPIView):
     serializer_class = ProductListSerializer  # Use simplified serializer for list view
 
 
+class ProductListView(generics.ListAPIView):
+    """
+    Возвращает список товаров с фильтрацией по категории (опционально).
+    """
+    permission_classes = [AllowAny]
+    serializer_class = ProductListSerializer
+
+    def get_queryset(self):
+        queryset = Product.objects.all()
+        category_id = self.request.query_params.get('category_id')
+        if category_id:
+            queryset = queryset.filter(category_id=category_id)
+        return queryset
+
+
 class ProductDetailView(generics.RetrieveUpdateDestroyAPIView):
     permission_classes = [AllowAny]
     queryset = Product.objects.all()
