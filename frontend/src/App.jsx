@@ -2107,6 +2107,27 @@ function App() {
   }, [isAuthenticated, redirectToAuth]);
 
   useEffect(() => {
+    const descriptionByView = {
+      delivery:
+        "Сроки и способы доставки, география, условия бесплатной доставки и отслеживание заказа.",
+    };
+    const titleByView = {
+      delivery: "Доставка",
+    };
+    const nextTitle = titleByView[viewMode] || "BLAKITNY";
+    const nextDescription =
+      descriptionByView[viewMode] || "Интернет-магазин BLAKITNY";
+    document.title = nextTitle;
+    let metaDescription = document.querySelector('meta[name="description"]');
+    if (!metaDescription) {
+      metaDescription = document.createElement("meta");
+      metaDescription.setAttribute("name", "description");
+      document.head.appendChild(metaDescription);
+    }
+    metaDescription.setAttribute("content", nextDescription);
+  }, [viewMode]);
+
+  useEffect(() => {
     const controller = new AbortController();
 
     async function loadSiteLogo(signal) {
@@ -2167,8 +2188,8 @@ function App() {
         const res = await fetch("/api/delivery-payment/", { signal });
         if (!res.ok) throw new Error(`HTTP ${res.status}`);
         const data = await res.json();
-        if (data?.delivery_info || data?.payment_info) {
-          setDeliveryData(data);
+        if (data?.delivery_info) {
+          setDeliveryData({ delivery_info: data.delivery_info });
         } else {
           setDeliveryData(null);
         }
@@ -2647,7 +2668,7 @@ function App() {
               О нас
             </a>
             <a className="navLink" href="#delivery" onClick={openDelivery}>
-              Доставка и оплата
+              Доставка
             </a>
             <a className="navLink" href="#contacts" onClick={openContacts}>
               Контакты
@@ -2708,12 +2729,66 @@ function App() {
                           className="productMainImage"
                           onClick={() => openImageModal(activeImageIndex)}
                         >
+                          {activeProductImages.length > 1 ? (
+                            <button
+                              type="button"
+                              className="productImageNav productImageNavPrev"
+                              onClick={(event) => {
+                                event.stopPropagation();
+                                prevImage();
+                              }}
+                              aria-label="Предыдущее изображение"
+                            >
+                              <svg
+                                className="productImageNavIcon"
+                                viewBox="0 0 24 24"
+                                fill="none"
+                                xmlns="http://www.w3.org/2000/svg"
+                                aria-hidden="true"
+                              >
+                                <path
+                                  d="M14 6L8 12L14 18"
+                                  stroke="currentColor"
+                                  strokeWidth="2.25"
+                                  strokeLinecap="round"
+                                  strokeLinejoin="round"
+                                />
+                              </svg>
+                            </button>
+                          ) : null}
                           <img
                             src={toProxiedUrl(
                               activeProductImages[activeImageIndex]?.image,
                             )}
                             alt={activeProduct?.name || "Товар"}
                           />
+                          {activeProductImages.length > 1 ? (
+                            <button
+                              type="button"
+                              className="productImageNav productImageNavNext"
+                              onClick={(event) => {
+                                event.stopPropagation();
+                                nextImage();
+                              }}
+                              aria-label="Следующее изображение"
+                            >
+                              <svg
+                                className="productImageNavIcon"
+                                viewBox="0 0 24 24"
+                                fill="none"
+                                xmlns="http://www.w3.org/2000/svg"
+                                aria-hidden="true"
+                              >
+                                <path
+                                  d="M10 6L16 12L10 18"
+                                  stroke="currentColor"
+                                  strokeWidth="2.25"
+                                  strokeLinecap="round"
+                                  strokeLinejoin="round"
+                                />
+                              </svg>
+                            </button>
+                          ) : null}
                         </div>
                         <div className="productThumbs">
                           {activeProductImages.map((img, idx) => (
@@ -3309,7 +3384,7 @@ function App() {
             <div className="footerCol">
               <div className="footerTitle">Информация</div>
               <a className="footerLink" href="#delivery">
-                Доставка и оплата
+                Доставка
               </a>
               <a className="footerLink" href="#contacts">
                 Контакты
