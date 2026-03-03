@@ -2945,7 +2945,7 @@ function App() {
                         </span>
                       ) : null}
                     </summary>
-                    <div className="filterOptions">
+                    <div className="filterOptions filterOptionsScrollable">
                       {sizes.length === 0 ? (
                         <div className="filterEmpty">
                           Нет доступных размеров
