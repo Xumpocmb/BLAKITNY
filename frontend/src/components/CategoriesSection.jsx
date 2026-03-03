@@ -16,15 +16,22 @@ function toProxiedUrl(url) {
   }
 }
 
-export function CategoriesSection({ categories, className, onCategoryClick }) {
+export function CategoriesSection({
+  categories,
+  className,
+  onCategoryClick,
+  limit = 4,
+}) {
   const activeCategories = Array.isArray(categories)
     ? categories.filter((cat) => cat.is_active !== false)
     : [];
 
   if (activeCategories.length === 0) return null;
 
-  // Берем только первые 4 категории
-  const displayCategories = activeCategories.slice(0, 4);
+  const displayCategories =
+    typeof limit === "number"
+      ? activeCategories.slice(0, limit)
+      : activeCategories;
 
   return (
     <section className={`categoriesSection ${className || ""}`} id="categories">
