@@ -1825,7 +1825,6 @@ function App() {
   const [authModalOpen, setAuthModalOpen] = useState(false);
   const [authMode, setAuthMode] = useState("login");
   const [catalogProducts, setCatalogProducts] = useState([]);
-  const [sizes, setSizes] = useState([]);
   const [fabrics, setFabrics] = useState([]);
   const [selectedSizes, setSelectedSizes] = useState([]);
   const [selectedFabrics, setSelectedFabrics] = useState([]);
@@ -1872,6 +1871,22 @@ function App() {
     });
     return [...primary, ...rest];
   }, [subcategories, selectedCategoryId]);
+  const availableSizes = useMemo(() => {
+    const sizeMap = new Map();
+    catalogProducts.forEach((product) => {
+      const variants = Array.isArray(product?.variants) ? product.variants : [];
+      variants.forEach((variant) => {
+        if (!variant || variant.is_active === false) return;
+        const size = variant?.size;
+        if (!size || size.is_active === false || !size.id) return;
+        const key = String(size.id);
+        if (!sizeMap.has(key)) {
+          sizeMap.set(key, size);
+        }
+      });
+    });
+    return Array.from(sizeMap.values());
+  }, [catalogProducts]);
   const filteredProducts = useMemo(() => {
     const sizeSet = new Set(selectedSizes.map((id) => String(id)));
     const fabricSet = new Set(selectedFabrics.map((id) => String(id)));
@@ -1948,6 +1963,16 @@ function App() {
     selectedSizes,
     sortMode,
   ]);
+
+  useEffect(() => {
+    if (selectedSizes.length === 0) return;
+    const availableSizeIds = new Set(
+      availableSizes.map((size) => String(size.id)),
+    );
+    setSelectedSizes((prev) =>
+      prev.filter((sizeId) => availableSizeIds.has(String(sizeId))),
+    );
+  }, [availableSizes, selectedSizes.length]);
 
   useEffect(() => {
     applyTheme(THEMES[themeName] ?? THEMES.cream);
@@ -2259,18 +2284,6 @@ function App() {
       }
     }
 
-    async function loadSizes(signal) {
-      try {
-        const res = await fetch("/api/catalog/sizes/", { signal });
-        if (!res.ok) throw new Error(`HTTP ${res.status}`);
-        const data = await res.json();
-        const list = Array.isArray(data) ? data : [];
-        setSizes(list.filter((item) => item?.is_active !== false));
-      } catch {
-        setSizes([]);
-      }
-    }
-
     async function loadFabrics(signal) {
       try {
         const res = await fetch("/api/catalog/fabrics/", { signal });
@@ -2322,8 +2335,6 @@ function App() {
         await bootstrapAuth(controller.signal);
         await pause(1000, controller.signal);
         await loadSlider(controller.signal);
-        await pause(1000, controller.signal);
-        await loadSizes(controller.signal);
         await pause(1000, controller.signal);
         await loadFabrics(controller.signal);
         await pause(1000, controller.signal);
@@ -3000,12 +3011,12 @@ function App() {
                       ) : null}
                     </summary>
                     <div className="filterOptions filterOptionsScrollable">
-                      {sizes.length === 0 ? (
+                      {availableSizes.length === 0 ? (
                         <div className="filterEmpty">
                           Нет доступных размеров
                         </div>
                       ) : (
-                        sizes.map((size) => (
+                        availableSizes.map((size) => (
                           <label className="filterOption" key={size.id}>
                             <input
                               type="checkbox"
