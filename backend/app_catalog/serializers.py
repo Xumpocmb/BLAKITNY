@@ -57,10 +57,11 @@ class ProductListSerializer(serializers.ModelSerializer):
     subcategory = SubcategorySerializer(read_only=True)
     fabric_type = FabricSerializer(read_only=True)
     images = ProductImageSerializer(many=True, read_only=True)
+    variants = ProductVariantSerializer(many=True, read_only=True)
 
     class Meta:
         model = Product
-        fields = ['id', 'name', 'category', 'subcategory', 'fabric_type', 'binding', 'picture_title', 'images', 'is_active', 'is_promotion', 'is_new']
+        fields = ['id', 'name', 'description', 'category', 'subcategory', 'fabric_type', 'binding', 'picture_title', 'images', 'variants', 'is_active', 'is_promotion', 'is_new']
 
 
         

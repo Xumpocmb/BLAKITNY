@@ -1845,6 +1845,9 @@ function App() {
     () => sliderSlides.map((s) => s.id).join("-"),
     [sliderSlides],
   );
+  const activeCatalogCategories = useMemo(() => {
+    return categories.filter((item) => item?.is_active !== false);
+  }, [categories]);
   const activeProduct = useMemo(() => {
     return (
       catalogProducts.find((product) => product.id === activeProductId) || null
@@ -2173,18 +2176,6 @@ function App() {
       }
     }
 
-    async function loadSubcategories(signal) {
-      try {
-        const res = await fetch("/api/catalog/subcategories/", { signal });
-        if (!res.ok) throw new Error(`HTTP ${res.status}`);
-        const data = await res.json();
-        const list = Array.isArray(data) ? data : [];
-        setSubcategories(list.filter((item) => item?.is_active !== false));
-      } catch {
-        setSubcategories([]);
-      }
-    }
-
     async function loadProfile(accessToken, refreshToken, signal) {
       try {
         const res = await fetch("/api/users/me/", {
@@ -2292,11 +2283,16 @@ function App() {
       }
     }
 
-    async function loadCatalogProducts(signal) {
+    async function loadCatalogProducts(signal, categoryId = null) {
       try {
-        const res = await fetch("/api/catalog/products-with-variants/", {
-          signal,
-        });
+        const query = new URLSearchParams();
+        if (categoryId) {
+          query.set("category_id", String(categoryId));
+        }
+        const url = query.size
+          ? `/api/catalog/products/?${query.toString()}`
+          : "/api/catalog/products/";
+        const res = await fetch(url, { signal });
         if (!res.ok) throw new Error(`HTTP ${res.status}`);
         const data = await res.json();
         const list = Array.isArray(data) ? data : [];
@@ -2323,8 +2319,6 @@ function App() {
         await pause(1000, controller.signal);
         await loadCategories(controller.signal);
         await pause(1000, controller.signal);
-        await loadSubcategories(controller.signal);
-        await pause(1000, controller.signal);
         await bootstrapAuth(controller.signal);
         await pause(1000, controller.signal);
         await loadSlider(controller.signal);
@@ -2333,7 +2327,7 @@ function App() {
         await pause(1000, controller.signal);
         await loadFabrics(controller.signal);
         await pause(1000, controller.signal);
-        await loadCatalogProducts(controller.signal);
+        await loadCatalogProducts(controller.signal, null);
       } finally {
         if (!controller.signal.aborted) setPageReady(true);
       }
@@ -2342,6 +2336,59 @@ function App() {
     bootstrap();
     return () => controller.abort();
   }, []);
+
+  useEffect(() => {
+    if (!pageReady) return;
+    const controller = new AbortController();
+
+    async function syncCatalogData() {
+      try {
+        const productQuery = new URLSearchParams();
+        if (selectedCategoryId) {
+          productQuery.set("category_id", String(selectedCategoryId));
+        }
+        const productsUrl = productQuery.size
+          ? `/api/catalog/products/?${productQuery.toString()}`
+          : "/api/catalog/products/";
+        const productsRes = await fetch(productsUrl, {
+          signal: controller.signal,
+        });
+        if (!productsRes.ok) throw new Error(`HTTP ${productsRes.status}`);
+        const productsData = await productsRes.json();
+        setCatalogProducts(Array.isArray(productsData) ? productsData : []);
+      } catch {
+        setCatalogProducts([]);
+      }
+
+      if (!selectedCategoryId) {
+        setSubcategories([]);
+        setSelectedSubcategoryId(null);
+        return;
+      }
+
+      try {
+        const subcategoriesRes = await fetch(
+          `/api/catalog/categories/${selectedCategoryId}/subcategories/`,
+          {
+            signal: controller.signal,
+          },
+        );
+        if (!subcategoriesRes.ok) {
+          throw new Error(`HTTP ${subcategoriesRes.status}`);
+        }
+        const subcategoriesData = await subcategoriesRes.json();
+        const nextSubcategories = Array.isArray(subcategoriesData)
+          ? subcategoriesData.filter((item) => item?.is_active !== false)
+          : [];
+        setSubcategories(nextSubcategories);
+      } catch {
+        setSubcategories([]);
+      }
+    }
+
+    syncCatalogData();
+    return () => controller.abort();
+  }, [pageReady, selectedCategoryId]);
 
   const openAuth = (mode) => {
     setAuthMode(mode);
@@ -2430,6 +2477,11 @@ function App() {
     setViewMode("catalog");
     window.location.hash = "catalog";
     window.scrollTo({ top: 0 });
+  };
+
+  const handleCatalogCategorySelect = (categoryId) => {
+    setSelectedCategoryId(categoryId);
+    setSelectedSubcategoryId(null);
   };
 
   const openAbout = (event) => {
@@ -2905,7 +2957,9 @@ function App() {
                     <div className="filterOptions">
                       {orderedSubcategories.length === 0 ? (
                         <div className="filterEmpty">
-                          Нет доступных подкатегорий
+                          {selectedCategoryId
+                            ? "Нет доступных подкатегорий"
+                            : "Выберите категорию"}
                         </div>
                       ) : (
                         <select
@@ -3035,6 +3089,31 @@ function App() {
                   </button>
                 </aside>
                 <div className="catalogContent">
+                  <div className="catalogCategories card">
+                    <button
+                      type="button"
+                      className={`catalogCategoryChip ${
+                        !selectedCategoryId ? "catalogCategoryChipActive" : ""
+                      }`}
+                      onClick={() => handleCatalogCategorySelect(null)}
+                    >
+                      Все категории
+                    </button>
+                    {activeCatalogCategories.map((category) => (
+                      <button
+                        type="button"
+                        key={category.id}
+                        className={`catalogCategoryChip ${
+                          String(selectedCategoryId) === String(category.id)
+                            ? "catalogCategoryChipActive"
+                            : ""
+                        }`}
+                        onClick={() => handleCatalogCategorySelect(category.id)}
+                      >
+                        {category.name}
+                      </button>
+                    ))}
+                  </div>
                   <div className="catalogToolbar card">
                     <div className="catalogCount">
                       Товаров: {filteredProducts.length}
