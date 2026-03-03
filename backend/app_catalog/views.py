@@ -71,7 +71,13 @@ class ProductListView(generics.ListAPIView):
     serializer_class = ProductListSerializer
 
     def get_queryset(self):
-        queryset = Product.objects.all()
+        queryset = Product.objects.prefetch_related(
+            'variants__size',
+            'images',
+            'category',
+            'subcategory',
+            'fabric_type',
+        ).filter(is_active=True)
         category_id = self.request.query_params.get('category_id')
         if category_id:
             queryset = queryset.filter(category_id=category_id)
