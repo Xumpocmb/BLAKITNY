@@ -57,6 +57,19 @@ class Fabric(models.Model):
         return self.name
 
 
+class PictureTitle(models.Model):
+    name = models.CharField(max_length=200, verbose_name='Название рисунка')
+    is_active = models.BooleanField(default=True, verbose_name='Активен')
+
+    class Meta:
+        verbose_name = 'Название рисунка'
+        verbose_name_plural = 'Названия рисунков'
+        ordering = ['name']
+
+    def __str__(self):
+        return self.name
+
+
 class Product(models.Model):
     category = models.ForeignKey(Category, on_delete=models.CASCADE, verbose_name='Категория')
     subcategory = models.ForeignKey(Subcategory, on_delete=models.CASCADE, verbose_name='Подкатегория')
@@ -64,8 +77,6 @@ class Product(models.Model):
     sku = models.CharField(max_length=20, verbose_name='Артикул', blank=True, null=True)
     description = models.TextField(blank=True, null=True, verbose_name='Описание')
     binding = models.TextField(blank=True, null=True, verbose_name='Переплет')
-    picture_title = models.TextField(blank=True, null=True, verbose_name='Название рисунка')
-    fabric_type = models.ForeignKey(Fabric, on_delete=models.SET_NULL, verbose_name='Тип ткани', blank=True, null=True)
     is_active = models.BooleanField(default=True, verbose_name='Активен')
     is_promotion = models.BooleanField(default=False, verbose_name='Акция')
     is_new = models.BooleanField(default=False, verbose_name='Новинка')
@@ -96,7 +107,9 @@ class ProductImage(models.Model):
 
 class ProductVariant(models.Model):
     product = models.ForeignKey(Product, on_delete=models.CASCADE, related_name='variants', verbose_name='Товар')
-    size = models.ForeignKey(Size, on_delete=models.CASCADE, verbose_name='Размер')
+    size = models.ForeignKey(Size, on_delete=models.SET_NULL, verbose_name='Размер', blank=True, null=True)
+    fabric = models.ForeignKey(Fabric, on_delete=models.SET_NULL, verbose_name='Ткань', blank=True, null=True)
+    picture_title = models.ForeignKey(PictureTitle, on_delete=models.SET_NULL, verbose_name='Название рисунка', blank=True, null=True)
     price = models.DecimalField(max_digits=10, decimal_places=2, verbose_name='Цена')
     is_active = models.BooleanField(default=True, verbose_name='Активен')
 
@@ -104,8 +117,17 @@ class ProductVariant(models.Model):
         verbose_name = 'Вариант товара'
         verbose_name_plural = 'Варианты товаров'
         ordering = ['product', 'size']
+        unique_together = ['product', 'size', 'fabric', 'picture_title']
 
     def __str__(self):
-        return f"{self.product.name} - {self.size.name} - {self.price}"
+        parts = [self.product.name]
+        if self.size:
+            parts.append(self.size.name)
+        if self.fabric:
+            parts.append(self.fabric.name)
+        if self.picture_title:
+            parts.append(self.picture_title.name)
+        parts.append(str(self.price))
+        return ' - '.join(parts)
 
 

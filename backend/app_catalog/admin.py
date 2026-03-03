@@ -1,5 +1,5 @@
 from django.contrib import admin
-from .models import Category, Subcategory, Size, Fabric, Product, ProductVariant, ProductImage
+from .models import Category, Subcategory, Size, Fabric, PictureTitle, Product, ProductVariant, ProductImage
 
 
 class ProductImageInline(admin.TabularInline):
@@ -19,7 +19,7 @@ class ProductVariantInline(admin.TabularInline):
     """
     model = ProductVariant
     extra = 1  # Number of empty forms to display
-    fields = ('size', 'price', 'is_active')
+    fields = ('size', 'fabric', 'picture_title', 'price', 'is_active')
     verbose_name = 'Вариант товара'
     verbose_name_plural = 'Варианты товаров'
 
@@ -30,27 +30,18 @@ class ProductAdmin(admin.ModelAdmin):
     Admin interface for Product model with inline variants and images.
     """
     list_display = ('name', 'category', 'subcategory', 'is_active', 'is_promotion', 'is_new')
-    list_filter = ('category', 'subcategory', 'is_active', 'is_promotion', 'is_new', 'fabric_type')
+    list_filter = ('category', 'subcategory', 'is_active', 'is_promotion', 'is_new')
     search_fields = ('name', 'description')
-    # fabric_type is a ForeignKey, not a many-to-many field, so no filter_horizontal needed
     inlines = [ProductImageInline, ProductVariantInline]  # Include the images and variants inline
     fieldsets = (
         ('Основная информация', {
-            'fields': ('category', 'subcategory', 'name', 'description', 'binding', 'picture_title', 'fabric_type')
+            'fields': ('category', 'subcategory', 'name', 'description', 'binding')
         }),
         ('Статус', {
             'fields': ('is_active', 'is_promotion', 'is_new'),
             'classes': ('collapse',)
         }),
     )
-
-    def formfield_for_foreignkey(self, db_field, request, **kwargs):
-        """
-        Customize the queryset for foreign key fields.
-        """
-        if db_field.name == "fabric_type":
-            kwargs["queryset"] = Fabric.objects.filter(is_active=True)
-        return super().formfield_for_foreignkey(db_field, request, **kwargs)
 
 
 @admin.register(Category)
@@ -87,6 +78,16 @@ class SizeAdmin(admin.ModelAdmin):
 class FabricAdmin(admin.ModelAdmin):
     """
     Admin interface for Fabric model.
+    """
+    list_display = ('name', 'is_active')
+    list_filter = ('is_active',)
+    search_fields = ('name',)
+
+
+@admin.register(PictureTitle)
+class PictureTitleAdmin(admin.ModelAdmin):
+    """
+    Admin interface for PictureTitle model.
     """
     list_display = ('name', 'is_active')
     list_filter = ('is_active',)
