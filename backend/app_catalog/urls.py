@@ -22,9 +22,6 @@ urlpatterns = [
     path('products/', views.ProductListView.as_view(), name='product-list'),
     path('products/<int:pk>/', views.ProductDetailView.as_view(), name='product-detail'),
 
-    # Product with variants list endpoint
-    path('products-with-variants/', views.ProductWithVariantsListView.as_view(), name='product-with-variants-list'),
-
     # Subcategory by category endpoint
     path('categories/<int:category_id>/subcategories/', views.SubcategoryByCategoryView.as_view(), name='subcategory-by-category'),
 ]
