@@ -19,7 +19,7 @@ urlpatterns = [
     path('fabrics/<int:pk>/', views.FabricDetailView.as_view(), name='fabric-detail'),
 
     # Product endpoints (with variants included in detail view)
-    path('products/', views.ProductListCreateView.as_view(), name='product-list-create'),
+    path('products/', views.ProductListView.as_view(), name='product-list'),
     path('products/<int:pk>/', views.ProductDetailView.as_view(), name='product-detail'),
 
     # Product with variants list endpoint
