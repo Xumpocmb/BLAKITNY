@@ -5,7 +5,7 @@ from .models import Category, Subcategory, Size, Fabric, Product
 from .serializers import (
     CategorySerializer, SubcategorySerializer,
     SizeSerializer, FabricSerializer,
-    ProductSerializer, ProductListSerializer
+    ProductSerializer
 )
 
 
@@ -57,21 +57,28 @@ class FabricDetailView(generics.RetrieveUpdateDestroyAPIView):
     serializer_class = FabricSerializer
 
 
-class ProductListCreateView(generics.ListCreateAPIView):
-    permission_classes = [AllowAny]
-    queryset = Product.objects.all()
-    serializer_class = ProductListSerializer  # Use simplified serializer for list view
-
-
 class ProductListView(generics.ListAPIView):
     """
-    Возвращает список товаров с фильтрацией по категории (опционально).
+    Возвращает список товаров.
+
+    Опционально поддерживает фильтрацию по категории через query-параметр.
+    Каждый товар включает в себя варианты (variants), изображения, категорию, подкатегорию и тип ткани.
+
+    Query Parameters:
+        category_id (int, optional): ID категории для фильтрации товаров
+
+    Returns:
+        list: Список товаров с вариантами и изображениями
+
+    Example:
+        GET /api/catalog/products/ — все товары
+        GET /api/catalog/products/?category_id=1 — товары категории 1
     """
     permission_classes = [AllowAny]
-    serializer_class = ProductListSerializer
+    serializer_class = ProductSerializer
 
     def get_queryset(self):
-        queryset = Product.objects.all()
+        queryset = Product.objects.prefetch_related('variants', 'images', 'category', 'subcategory', 'fabric_type')
         category_id = self.request.query_params.get('category_id')
         if category_id:
             queryset = queryset.filter(category_id=category_id)
@@ -79,15 +86,23 @@ class ProductListView(generics.ListAPIView):
 
 
 class ProductDetailView(generics.RetrieveUpdateDestroyAPIView):
+    """
+    Возвращает, обновляет или удаляет конкретный товар.
+
+    Возвращает полную информацию о товаре, включая варианты (variants), изображения,
+    категорию, подкатегорию и тип ткани.
+
+    Returns:
+        object: Объект товара с вариантами и изображениями
+
+    Example:
+        GET /api/catalog/products/1/ — получить товар с ID=1
+        PUT /api/catalog/products/1/ — обновить товар с ID=1
+        DELETE /api/catalog/products/1/ — удалить товар с ID=1
+    """
     permission_classes = [AllowAny]
     queryset = Product.objects.all()
-    serializer_class = ProductSerializer  # Use detailed serializer for detail view
-
-
-class ProductWithVariantsListView(generics.ListAPIView):
-    permission_classes = [AllowAny]
-    queryset = Product.objects.prefetch_related('variants', 'images', 'category', 'subcategory', 'fabric_type').filter(is_active=True)
-    serializer_class = ProductSerializer  # Use detailed serializer that includes variants
+    serializer_class = ProductSerializer
 
 
 class SubcategoryByCategoryView(generics.ListAPIView):
